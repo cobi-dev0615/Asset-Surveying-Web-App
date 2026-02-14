@@ -38,4 +38,9 @@ class ActivoFijoRegistro extends Model
     {
         return $this->belongsTo(User::class, 'usuario_id');
     }
+
+    public function producto(): BelongsTo
+    {
+        return $this->belongsTo(ActivoFijoProducto::class, 'id_producto');
+    }
 }

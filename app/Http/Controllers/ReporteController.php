@@ -6,6 +6,7 @@ use App\Models\ActivoFijoInventario;
 use App\Models\ActivoFijoRegistro;
 use App\Models\ActivoNoEncontrado;
 use App\Models\Empresa;
+use App\Models\LogSesionMovil;
 use App\Models\Sucursal;
 use Illuminate\Http\Request;
 
@@ -108,5 +109,23 @@ class ReporteController extends Controller
         }
 
         return view('reportes.acumulado', compact('resumen', 'empresas'));
+    }
+
+    public function sesionesMovil(Request $request)
+    {
+        $query = LogSesionMovil::with('inventario.empresa', 'inventario.sucursal', 'usuario');
+
+        if ($request->filled('inventario_id')) {
+            $query->where('inventario_id', $request->inventario_id);
+        }
+
+        if ($request->filled('usuario_id')) {
+            $query->whereHas('usuario', fn ($q) => $q->where('id', $request->usuario_id));
+        }
+
+        $sesiones = $query->orderBy('fecha_hora_entrada', 'desc')->paginate(20)->withQueryString();
+        $inventarios = ActivoFijoInventario::where('eliminado', false)->with('empresa', 'sucursal')->orderBy('id', 'desc')->get();
+
+        return view('reportes.sesiones-movil', compact('sesiones', 'inventarios'));
     }
 }

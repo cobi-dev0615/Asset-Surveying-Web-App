@@ -7,7 +7,7 @@ use App\Models\ActivoFijoRegistro;
 use App\Models\ActivoNoEncontrado;
 use App\Models\Empresa;
 use App\Models\Inventario;
-use App\Models\Producto;
+use App\Models\ActivoFijoProducto;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -35,15 +35,18 @@ class DashboardController extends Controller
         $totalNoEncontrados = 0;
 
         if ($sesionActual) {
-            $totalCatalogo = Producto::where('eliminado', false)
-                ->when($sesionActual->empresa_id, fn ($q) => $q->where('empresa_id', $sesionActual->empresa_id))
+            $totalCatalogo = ActivoFijoProducto::where('eliminado', false)
+                ->where('inventario_id', $sesionId)
                 ->count();
 
             $totalEncontrados = ActivoFijoRegistro::where('inventario_id', $sesionId)
                 ->where('eliminado', false)
                 ->count();
 
-            $totalNoEncontrados = ActivoNoEncontrado::where('inventario_id', $sesionId)->count();
+            $totalNoEncontrados = ActivoFijoProducto::where('inventario_id', $sesionId)
+                ->where('no_encontrado', true)
+                ->where('eliminado', false)
+                ->count();
         }
 
         $pendientes = max(0, $totalCatalogo - $totalEncontrados - $totalNoEncontrados);

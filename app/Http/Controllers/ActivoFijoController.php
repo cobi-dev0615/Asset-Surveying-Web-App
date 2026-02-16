@@ -12,9 +12,28 @@ use Illuminate\Support\Facades\Auth;
 
 class ActivoFijoController extends Controller
 {
+    private function empresaIds()
+    {
+        $user = Auth::user();
+        return $user->esAdmin() ? null : $user->empresas->pluck('id');
+    }
+
+    private function scopedEmpresas($empresaIds)
+    {
+        return Empresa::where('eliminado', false)
+            ->when($empresaIds, fn($q) => $q->whereIn('id', $empresaIds))
+            ->orderBy('nombre')->get();
+    }
+
     public function index(Request $request)
     {
+        $empresaIds = $this->empresaIds();
+
         $query = ActivoFijoInventario::where('eliminado', false)->with('empresa', 'sucursal', 'status', 'usuario');
+
+        if ($empresaIds !== null) {
+            $query->whereIn('empresa_id', $empresaIds);
+        }
 
         if ($request->filled('empresa_id')) {
             $query->where('empresa_id', $request->empresa_id);
@@ -29,7 +48,7 @@ class ActivoFijoController extends Controller
             ->paginate(15)
             ->withQueryString();
 
-        $empresas = Empresa::where('eliminado', false)->orderBy('nombre')->get();
+        $empresas = $this->scopedEmpresas($empresaIds);
         $statuses = InventarioStatus::all();
 
         return view('activo-fijo.index', compact('sesiones', 'empresas', 'statuses'));
@@ -37,7 +56,7 @@ class ActivoFijoController extends Controller
 
     public function create()
     {
-        $empresas = Empresa::where('eliminado', false)->orderBy('nombre')->get();
+        $empresas = $this->scopedEmpresas($this->empresaIds());
         $statuses = InventarioStatus::all();
         return view('activo-fijo.create', compact('empresas', 'statuses'));
     }
@@ -71,7 +90,7 @@ class ActivoFijoController extends Controller
 
     public function edit(ActivoFijoInventario $activo_fijo)
     {
-        $empresas = Empresa::where('eliminado', false)->orderBy('nombre')->get();
+        $empresas = $this->scopedEmpresas($this->empresaIds());
         $sucursales = Sucursal::where('empresa_id', $activo_fijo->empresa_id)->where('eliminado', false)->get();
         $statuses = InventarioStatus::all();
 

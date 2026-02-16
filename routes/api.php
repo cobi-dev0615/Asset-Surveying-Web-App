@@ -29,6 +29,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Fixed Assets
     Route::get('/activo-fijo', [ActivoFijoApiController::class, 'index']);
     Route::post('/activo-fijo/upload', [ActivoFijoApiController::class, 'upload']);
+    Route::post('/activo-fijo/upload-imagen', [ActivoFijoApiController::class, 'uploadImagen']);
     Route::post('/activo-fijo/no-encontrados', [ActivoFijoApiController::class, 'uploadNoEncontrados']);
     Route::post('/activo-fijo/traspasos', [ActivoFijoApiController::class, 'uploadTraspasos']);
 });

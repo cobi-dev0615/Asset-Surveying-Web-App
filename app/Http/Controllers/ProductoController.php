@@ -5,12 +5,32 @@ namespace App\Http\Controllers;
 use App\Models\Empresa;
 use App\Models\Producto;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class ProductoController extends Controller
 {
+    private function empresaIds()
+    {
+        $user = Auth::user();
+        return $user->esAdmin() ? null : $user->empresas->pluck('id');
+    }
+
+    private function scopedEmpresas($empresaIds)
+    {
+        return Empresa::where('eliminado', false)
+            ->when($empresaIds, fn($q) => $q->whereIn('id', $empresaIds))
+            ->orderBy('nombre')->get();
+    }
+
     public function index(Request $request)
     {
+        $empresaIds = $this->empresaIds();
+
         $query = Producto::where('eliminado', false)->with('empresa');
+
+        if ($empresaIds !== null) {
+            $query->whereIn('empresa_id', $empresaIds);
+        }
 
         if ($request->filled('empresa_id')) {
             $query->where('empresa_id', $request->empresa_id);
@@ -26,14 +46,14 @@ class ProductoController extends Controller
         }
 
         $productos = $query->orderBy('descripcion')->paginate(20)->withQueryString();
-        $empresas = Empresa::where('eliminado', false)->orderBy('nombre')->get();
+        $empresas = $this->scopedEmpresas($empresaIds);
 
         return view('productos.index', compact('productos', 'empresas'));
     }
 
     public function create()
     {
-        $empresas = Empresa::where('eliminado', false)->orderBy('nombre')->get();
+        $empresas = $this->scopedEmpresas($this->empresaIds());
         return view('productos.create', compact('empresas'));
     }
 
@@ -56,7 +76,7 @@ class ProductoController extends Controller
 
     public function edit(Producto $producto)
     {
-        $empresas = Empresa::where('eliminado', false)->orderBy('nombre')->get();
+        $empresas = $this->scopedEmpresas($this->empresaIds());
         return view('productos.edit', compact('producto', 'empresas'));
     }
 
@@ -85,7 +105,7 @@ class ProductoController extends Controller
 
     public function importForm()
     {
-        $empresas = Empresa::where('eliminado', false)->orderBy('nombre')->get();
+        $empresas = $this->scopedEmpresas($this->empresaIds());
         return view('productos.import', compact('empresas'));
     }
 

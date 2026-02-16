@@ -4,12 +4,14 @@
 @section('content')
 <div class="page-header">
     <h2>Empresas</h2>
+    @if(Auth::user()->esAdmin())
     <div class="page-header-actions">
         <a href="{{ route('empresas.create') }}" class="btn btn-primary">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
             Nueva Empresa
         </a>
     </div>
+    @endif
 </div>
 
 <div class="card">
@@ -41,7 +43,7 @@
                         <th>Usuarios</th>
                         <th>Productos</th>
                         <th>Creado</th>
-                        <th style="width:120px;">Acciones</th>
+                        @if(Auth::user()->esAdmin())<th style="width:120px;">Acciones</th>@endif
                     </tr>
                 </thead>
                 <tbody>
@@ -53,6 +55,7 @@
                         <td>{{ $empresa->users_count }}</td>
                         <td>{{ number_format($empresa->productos_count) }}</td>
                         <td style="color:var(--text-secondary); font-size:0.8rem;">{{ $empresa->created_at->format('d/m/Y') }}</td>
+                        @if(Auth::user()->esAdmin())
                         <td>
                             <div style="display:flex; gap:0.25rem;">
                                 <a href="{{ route('empresas.edit', $empresa) }}" class="btn btn-sm btn-outline" title="Editar">
@@ -66,6 +69,7 @@
                                 </form>
                             </div>
                         </td>
+                        @endif
                     </tr>
                     @empty
                     <tr>

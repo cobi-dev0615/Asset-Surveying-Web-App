@@ -19,8 +19,9 @@ class DashboardController extends Controller
     {
         $user = Auth::user();
 
-        // Get all active sessions for the session selector
+        // Get all active sessions for the session selector (scoped by empresa)
         $sesiones = ActivoFijoInventario::where('eliminado', false)
+            ->when(!$user->esAdmin(), fn ($q) => $q->whereIn('empresa_id', $user->empresas->pluck('id')))
             ->with('empresa', 'sucursal')
             ->orderBy('created_at', 'desc')
             ->get();

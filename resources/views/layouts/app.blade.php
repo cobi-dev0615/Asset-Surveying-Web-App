@@ -404,13 +404,15 @@
             </div>
         </div>
 
+        @php $rolSlug = Auth::user()->rol->slug; @endphp
         <nav class="sidebar-nav">
-            {{-- Tablero --}}
+            {{-- Tablero (all authenticated) --}}
             <a href="/dashboard" class="{{ request()->is('dashboard') ? 'active' : '' }}">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
                 Tablero
             </a>
 
+            @if(in_array($rolSlug, ['super_admin', 'supervisor']))
             {{-- Activos --}}
             <div class="sidebar-section">Activos</div>
             <a href="/activo-fijo-productos" class="{{ request()->is('activo-fijo-productos*') ? 'active' : '' }}">
@@ -436,8 +438,9 @@
                 <a href="/reportes/acumulado" class="{{ request()->is('reportes/acumulado') ? 'active' : '' }}">Reporte Acumulado</a>
                 <a href="/reportes/sesiones-movil" class="{{ request()->is('reportes/sesiones-movil') ? 'active' : '' }}">Sesiones Móvil</a>
             </div>
+            @endif
 
-            {{-- Transferencias --}}
+            {{-- Transferencias (all web roles) --}}
             <div class="sidebar-section">Transferencias</div>
             <button class="sidebar-toggle-btn {{ request()->is('transferencias*') || request()->is('traspasos*') || request()->is('ordenes-entrada*') ? 'open' : '' }}" onclick="toggleSubmenu(this)">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
@@ -449,9 +452,12 @@
                 <a href="/transferencias/nueva" class="{{ request()->is('transferencias/nueva') ? 'active' : '' }}">Nueva Solicitud</a>
                 <a href="/transferencias/solicitadas" class="{{ request()->is('transferencias/solicitadas') ? 'active' : '' }}">Órdenes Solicitadas</a>
                 <a href="/transferencias/recibidas" class="{{ request()->is('transferencias/recibidas') ? 'active' : '' }}">Órdenes Recibidas</a>
+                @if(in_array($rolSlug, ['super_admin', 'supervisor']))
                 <a href="/traspasos" class="{{ request()->is('traspasos*') ? 'active' : '' }}">Historial de Traspasos</a>
+                @endif
             </div>
 
+            @if(in_array($rolSlug, ['super_admin', 'supervisor']))
             {{-- Inventario de Productos --}}
             <div class="sidebar-section">Inventario de Productos</div>
             <a href="/inventarios" class="{{ request()->is('inventarios*') ? 'active' : '' }}">
@@ -477,11 +483,14 @@
                 <a href="/empresas" class="{{ request()->is('empresas*') ? 'active' : '' }}">Catálogo de Empresas</a>
                 <a href="/sucursales" class="{{ request()->is('sucursales*') ? 'active' : '' }}">Catálogo de Sucursales</a>
             </div>
+            @endif
 
+            @if($rolSlug === 'super_admin')
             <a href="/usuarios" class="{{ request()->is('usuarios*') ? 'active' : '' }}">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
                 Usuarios
             </a>
+            @endif
         </nav>
 
         <div class="sidebar-footer">

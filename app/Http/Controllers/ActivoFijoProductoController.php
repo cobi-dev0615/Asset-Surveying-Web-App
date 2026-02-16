@@ -6,13 +6,33 @@ use App\Models\ActivoFijoInventario;
 use App\Models\ActivoFijoProducto;
 use App\Models\Empresa;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class ActivoFijoProductoController extends Controller
 {
+    private function empresaIds()
+    {
+        $user = Auth::user();
+        return $user->esAdmin() ? null : $user->empresas->pluck('id');
+    }
+
+    private function scopedEmpresas($empresaIds)
+    {
+        return Empresa::where('eliminado', false)
+            ->when($empresaIds, fn($q) => $q->whereIn('id', $empresaIds))
+            ->orderBy('nombre')->get();
+    }
+
     public function index(Request $request)
     {
+        $empresaIds = $this->empresaIds();
+
         $query = ActivoFijoProducto::where('eliminado', false)
             ->with('empresa', 'inventario.sucursal');
+
+        if ($empresaIds !== null) {
+            $query->whereIn('empresa_id', $empresaIds);
+        }
 
         if ($request->filled('empresa_id')) {
             $query->where('empresa_id', $request->empresa_id);
@@ -33,8 +53,9 @@ class ActivoFijoProductoController extends Controller
         }
 
         $productos = $query->orderBy('codigo_1')->paginate(20)->withQueryString();
-        $empresas = Empresa::where('eliminado', false)->orderBy('nombre')->get();
+        $empresas = $this->scopedEmpresas($empresaIds);
         $sesiones = ActivoFijoInventario::where('eliminado', false)
+            ->when($empresaIds, fn($q) => $q->whereIn('empresa_id', $empresaIds))
             ->with('empresa', 'sucursal')
             ->orderBy('created_at', 'desc')
             ->get();
@@ -57,8 +78,10 @@ class ActivoFijoProductoController extends Controller
 
     public function importForm()
     {
-        $empresas = Empresa::where('eliminado', false)->orderBy('nombre')->get();
+        $empresaIds = $this->empresaIds();
+        $empresas = $this->scopedEmpresas($empresaIds);
         $sesiones = ActivoFijoInventario::where('eliminado', false)
+            ->when($empresaIds, fn($q) => $q->whereIn('empresa_id', $empresaIds))
             ->with('empresa', 'sucursal')
             ->orderBy('created_at', 'desc')
             ->get();

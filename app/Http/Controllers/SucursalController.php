@@ -5,12 +5,20 @@ namespace App\Http\Controllers;
 use App\Models\Empresa;
 use App\Models\Sucursal;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class SucursalController extends Controller
 {
     public function index(Request $request)
     {
+        $user = Auth::user();
+        $empresaIds = $user->esAdmin() ? null : $user->empresas->pluck('id');
+
         $query = Sucursal::where('eliminado', false)->with('empresa');
+
+        if ($empresaIds !== null) {
+            $query->whereIn('empresa_id', $empresaIds);
+        }
 
         if ($request->filled('empresa_id')) {
             $query->where('empresa_id', $request->empresa_id);
@@ -25,19 +33,23 @@ class SucursalController extends Controller
         }
 
         $sucursales = $query->orderBy('nombre')->paginate(15)->withQueryString();
-        $empresas = Empresa::where('eliminado', false)->orderBy('nombre')->get();
+        $empresas = Empresa::where('eliminado', false)
+            ->when($empresaIds, fn($q) => $q->whereIn('id', $empresaIds))
+            ->orderBy('nombre')->get();
 
         return view('sucursales.index', compact('sucursales', 'empresas'));
     }
 
     public function create()
     {
+        abort_unless(Auth::user()->esAdmin(), 403);
         $empresas = Empresa::where('eliminado', false)->orderBy('nombre')->get();
         return view('sucursales.create', compact('empresas'));
     }
 
     public function store(Request $request)
     {
+        abort_unless(Auth::user()->esAdmin(), 403);
         $request->validate([
             'empresa_id' => 'required|exists:empresas,id',
             'codigo' => 'required|string|max:50',
@@ -53,12 +65,14 @@ class SucursalController extends Controller
 
     public function edit(Sucursal $sucursal)
     {
+        abort_unless(Auth::user()->esAdmin(), 403);
         $empresas = Empresa::where('eliminado', false)->orderBy('nombre')->get();
         return view('sucursales.edit', compact('sucursal', 'empresas'));
     }
 
     public function update(Request $request, Sucursal $sucursal)
     {
+        abort_unless(Auth::user()->esAdmin(), 403);
         $request->validate([
             'empresa_id' => 'required|exists:empresas,id',
             'codigo' => 'required|string|max:50',
@@ -74,6 +88,7 @@ class SucursalController extends Controller
 
     public function destroy(Sucursal $sucursal)
     {
+        abort_unless(Auth::user()->esAdmin(), 403);
         $sucursal->update(['eliminado' => true]);
 
         return redirect()->route('sucursales.index')->with('success', 'Sucursal eliminada exitosamente.');

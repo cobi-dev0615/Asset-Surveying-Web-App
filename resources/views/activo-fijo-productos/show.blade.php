@@ -63,6 +63,23 @@
     </div>
 </div>
 
+{{-- Imágenes del Activo --}}
+@if($producto->imagen1 || $producto->imagen2 || $producto->imagen3)
+<div class="card" style="margin-bottom:1rem;">
+    <div class="card-header"><span>Imágenes del Activo</span></div>
+    <div class="card-body" style="display:flex; gap:1rem; flex-wrap:wrap; padding:1rem 1.5rem;">
+        @foreach(['imagen1','imagen2','imagen3'] as $img)
+            @if($producto->$img)
+                <a href="{{ asset('storage/' . $producto->$img) }}" target="_blank" style="display:block;">
+                    <img src="{{ asset('storage/' . $producto->$img) }}" alt="{{ $img }}"
+                         style="max-width:280px; max-height:220px; object-fit:cover; border-radius:6px; border:1px solid var(--border); cursor:pointer;">
+                </a>
+            @endif
+        @endforeach
+    </div>
+</div>
+@endif
+
 {{-- Historial de Escaneos --}}
 <div class="card">
     <div class="card-header">
@@ -80,6 +97,7 @@
                         <th>Categoría</th>
                         <th>Traspasado</th>
                         <th>Forzado</th>
+                        <th>Imágenes</th>
                         <th>Fecha</th>
                     </tr>
                 </thead>
@@ -105,11 +123,28 @@
                                 <span style="color:var(--text-light);">No</span>
                             @endif
                         </td>
+                        <td>
+                            @php $hasImgs = $reg->imagen1 || $reg->imagen2 || $reg->imagen3; @endphp
+                            @if($hasImgs)
+                                <div style="display:flex; gap:0.25rem;">
+                                    @foreach(['imagen1','imagen2','imagen3'] as $img)
+                                        @if($reg->$img)
+                                            <a href="{{ asset('storage/' . $reg->$img) }}" target="_blank">
+                                                <img src="{{ asset('storage/' . $reg->$img) }}" alt="{{ $img }}"
+                                                     style="width:40px; height:40px; object-fit:cover; border-radius:4px; border:1px solid var(--border);">
+                                            </a>
+                                        @endif
+                                    @endforeach
+                                </div>
+                            @else
+                                <span style="color:var(--text-light);">-</span>
+                            @endif
+                        </td>
                         <td>{{ $reg->created_at?->format('d/m/Y H:i') ?? '-' }}</td>
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="8" class="table-empty">
+                        <td colspan="9" class="table-empty">
                             <div>No hay registros de escaneo para este activo</div>
                         </td>
                     </tr>

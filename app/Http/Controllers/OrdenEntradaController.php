@@ -13,12 +13,27 @@ use Illuminate\Support\Facades\DB;
 
 class OrdenEntradaController extends Controller
 {
+    private function empresaIds()
+    {
+        $user = Auth::user();
+        return $user->esAdmin() ? null : $user->empresas->pluck('id');
+    }
+
     public function index(Request $request)
     {
+        $empresaIds = $this->empresaIds();
+
         $query = OrdenEntrada::where('eliminado', false)
             ->with('usuario', 'inventarioOrigen.empresa', 'inventarioOrigen.sucursal',
                    'inventarioDestino.empresa', 'inventarioDestino.sucursal', 'estatus')
             ->withCount('detalles');
+
+        if ($empresaIds !== null) {
+            $query->where(function ($q) use ($empresaIds) {
+                $q->whereHas('inventarioOrigen', fn($sq) => $sq->whereIn('empresa_id', $empresaIds))
+                  ->orWhereHas('inventarioDestino', fn($sq) => $sq->whereIn('empresa_id', $empresaIds));
+            });
+        }
 
         if ($request->filled('estatus_id')) {
             $query->where('estatus_id', $request->estatus_id);
@@ -39,7 +54,10 @@ class OrdenEntradaController extends Controller
 
     public function create()
     {
+        $empresaIds = $this->empresaIds();
+
         $sesiones = ActivoFijoInventario::where('eliminado', false)
+            ->when($empresaIds, fn($q) => $q->whereIn('empresa_id', $empresaIds))
             ->with('empresa', 'sucursal')
             ->orderBy('created_at', 'desc')
             ->get();

@@ -11,7 +11,12 @@ class EmpresaController extends Controller
 {
     public function index(Request $request)
     {
+        $user = Auth::user();
         $query = Empresa::where('eliminado', false)->withCount('sucursales', 'users', 'productos');
+
+        if (!$user->esAdmin()) {
+            $query->whereIn('id', $user->empresas->pluck('id'));
+        }
 
         if ($request->filled('buscar')) {
             $query->where(function ($q) use ($request) {
@@ -27,11 +32,13 @@ class EmpresaController extends Controller
 
     public function create()
     {
+        abort_unless(Auth::user()->esAdmin(), 403);
         return view('empresas.create');
     }
 
     public function store(Request $request)
     {
+        abort_unless(Auth::user()->esAdmin(), 403);
         $request->validate([
             'codigo' => 'required|string|max:50|unique:empresas,codigo',
             'nombre' => 'required|string|max:255',
@@ -52,6 +59,7 @@ class EmpresaController extends Controller
 
     public function edit(Empresa $empresa)
     {
+        abort_unless(Auth::user()->esAdmin(), 403);
         $usuarios = User::where('eliminado', false)->orderBy('nombres')->get();
         $asignados = $empresa->users->pluck('id')->toArray();
 
@@ -60,6 +68,7 @@ class EmpresaController extends Controller
 
     public function update(Request $request, Empresa $empresa)
     {
+        abort_unless(Auth::user()->esAdmin(), 403);
         $request->validate([
             'codigo' => 'required|string|max:50|unique:empresas,codigo,' . $empresa->id,
             'nombre' => 'required|string|max:255',
@@ -82,6 +91,7 @@ class EmpresaController extends Controller
 
     public function destroy(Empresa $empresa)
     {
+        abort_unless(Auth::user()->esAdmin(), 403);
         $empresa->update(['eliminado' => true]);
 
         return redirect()->route('empresas.index')->with('success', 'Empresa eliminada exitosamente.');

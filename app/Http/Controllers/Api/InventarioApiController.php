@@ -22,6 +22,30 @@ class InventarioApiController extends Controller
         return response()->json($inventarios);
     }
 
+    public function create(Request $request)
+    {
+        $request->validate([
+            'nombre' => 'required|string|max:255',
+            'empresa_id' => 'required|integer|exists:empresas,id',
+            'sucursal_id' => 'required|integer|exists:sucursales,id',
+        ]);
+
+        $inventario = Inventario::create([
+            'nombre' => $request->nombre,
+            'empresa_id' => $request->empresa_id,
+            'sucursal_id' => $request->sucursal_id,
+            'usuario_id' => $request->user()->id,
+            'nombre_usuario' => $request->user()->nombres,
+            'status_id' => 1,
+            'eliminado' => false,
+            'finalizado' => false,
+        ]);
+
+        $inventario->load('sucursal', 'empresa');
+
+        return response()->json($inventario, 201);
+    }
+
     public function upload(Request $request)
     {
         $request->validate([

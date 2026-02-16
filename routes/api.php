@@ -24,13 +24,16 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Inventory (Product counting)
     Route::get('/inventarios', [InventarioApiController::class, 'index']);
+    Route::post('/inventarios/create', [InventarioApiController::class, 'create']);
     Route::post('/inventarios/upload', [InventarioApiController::class, 'upload']);
 
     // Fixed Assets
     Route::get('/activo-fijo', [ActivoFijoApiController::class, 'index']);
+    Route::post('/activo-fijo/create', [ActivoFijoApiController::class, 'create']);
     Route::get('/activo-fijo-productos', [ActivoFijoApiController::class, 'productos']);
     Route::post('/activo-fijo/upload', [ActivoFijoApiController::class, 'upload']);
     Route::post('/activo-fijo/upload-imagen', [ActivoFijoApiController::class, 'uploadImagen']);
     Route::post('/activo-fijo/no-encontrados', [ActivoFijoApiController::class, 'uploadNoEncontrados']);
     Route::post('/activo-fijo/traspasos', [ActivoFijoApiController::class, 'uploadTraspasos']);
+    Route::post('/activo-fijo/rfid-tags', [ActivoFijoApiController::class, 'uploadRfidTags']);
 });

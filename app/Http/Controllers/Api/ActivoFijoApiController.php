@@ -25,6 +25,29 @@ class ActivoFijoApiController extends Controller
         return response()->json($inventarios);
     }
 
+    public function create(Request $request)
+    {
+        $request->validate([
+            'nombre' => 'required|string|max:255',
+            'empresa_id' => 'required|integer|exists:empresas,id',
+            'sucursal_id' => 'required|integer|exists:sucursales,id',
+        ]);
+
+        $inventario = ActivoFijoInventario::create([
+            'nombre' => $request->nombre,
+            'empresa_id' => $request->empresa_id,
+            'sucursal_id' => $request->sucursal_id,
+            'usuario_id' => $request->user()->id,
+            'status_id' => 1,
+            'eliminado' => false,
+            'finalizado' => false,
+        ]);
+
+        $inventario->load('sucursal', 'empresa');
+
+        return response()->json($inventario, 201);
+    }
+
     public function productos(Request $request)
     {
         $empresaIds = $request->user()->empresas->pluck('id');
@@ -207,5 +230,36 @@ class ActivoFijoApiController extends Controller
         }
 
         return response()->json(['message' => 'Traspasos registrados.']);
+    }
+
+    public function uploadRfidTags(Request $request)
+    {
+        $request->validate([
+            'session_id' => 'required|integer|exists:activo_fijo_inventarios,id',
+            'tags' => 'required|array',
+            'tags.*.epc' => 'required|string',
+        ]);
+
+        $count = 0;
+
+        foreach ($request->tags as $data) {
+            DB::table('activo_fijo_rfid_tags')->insert([
+                'session_id' => $request->session_id,
+                'epc' => $data['epc'],
+                'rssi' => $data['rssi'] ?? 0,
+                'read_count' => $data['read_count'] ?? 1,
+                'matched' => $data['matched'] ?? false,
+                'matched_registro_id' => $data['matched_registro_id'] ?? null,
+                'scanned_at' => $data['timestamp'] ?? now(),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+            $count++;
+        }
+
+        return response()->json([
+            'message' => "Se sincronizaron $count tags RFID.",
+            'count' => $count,
+        ]);
     }
 }

@@ -339,13 +339,16 @@
         .modal-footer { padding: 0.75rem 1.25rem; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 0.5rem; }
 
         /* ===== PAGINATION ===== */
-        .pagination { display: flex; align-items: center; justify-content: center; gap: 0.2rem; margin-top: 1rem; }
+        .pagination-wrapper { display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 1.5rem; flex-wrap: wrap; gap: 0.75rem; }
+        .pagination-info { font-size: 0.8rem; color: var(--text-secondary); }
+        .pagination { display: flex; align-items: center; justify-content: center; gap: 0.2rem; }
         .pagination a, .pagination span {
             padding: 0.35rem 0.65rem; border: 1px solid var(--border); border-radius: var(--radius);
-            font-size: 0.8rem; color: var(--text-secondary); transition: var(--transition);
+            font-size: 0.8rem; color: var(--text-secondary); transition: var(--transition); text-decoration: none;
         }
         .pagination a:hover { background: var(--bg); color: var(--text); }
         .pagination .active { background: var(--primary); color: #fff; border-color: var(--primary); }
+        .pagination .disabled { opacity: 0.4; cursor: not-allowed; }
 
         /* ===== SEARCH ===== */
         .search-box { position: relative; }

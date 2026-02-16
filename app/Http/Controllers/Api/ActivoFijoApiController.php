@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\ActivoFijoInventario;
+use App\Models\ActivoFijoProducto;
 use App\Models\ActivoFijoRegistro;
 use App\Models\ActivoNoEncontrado;
 use App\Models\ActivoTraspasado;
@@ -22,6 +23,28 @@ class ActivoFijoApiController extends Controller
             ->get();
 
         return response()->json($inventarios);
+    }
+
+    public function productos(Request $request)
+    {
+        $empresaIds = $request->user()->empresas->pluck('id');
+
+        $query = ActivoFijoProducto::where('eliminado', false)
+            ->whereIn('empresa_id', $empresaIds);
+
+        if ($request->filled('inventario_id')) {
+            $query->where('inventario_id', $request->inventario_id);
+        }
+
+        return response()->json(
+            $query->select([
+                'id', 'inventario_id', 'empresa_id', 'codigo_1', 'codigo_2', 'codigo_3',
+                'tag_rfid', 'descripcion', 'n_serie', 'categoria_1', 'categoria_2',
+                'marca', 'modelo', 'tipo_activo',
+            ])
+            ->orderBy('id')
+            ->paginate($request->integer('per_page', 500))
+        );
     }
 
     public function upload(Request $request)

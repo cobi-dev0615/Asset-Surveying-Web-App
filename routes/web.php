@@ -16,11 +16,13 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/', fn () => redirect('/login'));
 
-Route::get('/login', [LoginController::class, 'showLogin'])->name('login');
-Route::post('/login', [LoginController::class, 'login']);
+Route::middleware('guest')->group(function () {
+    Route::get('/login', [LoginController::class, 'showLogin'])->name('login');
+    Route::post('/login', [LoginController::class, 'login']);
+    Route::get('/register', [LoginController::class, 'showRegister'])->name('register');
+    Route::post('/register', [LoginController::class, 'register']);
+});
 Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
-Route::get('/register', [LoginController::class, 'showRegister'])->name('register');
-Route::post('/register', [LoginController::class, 'register']);
 
 Route::middleware('auth')->group(function () {
     // === All authenticated web users ===

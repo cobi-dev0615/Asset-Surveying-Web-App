@@ -13,29 +13,52 @@
     .login-card .btn-primary { width: 100%; padding: 0.7rem; font-size: 0.95rem; margin-top: 0.5rem; }
     .login-footer { text-align: center; margin-top: 1.5rem; color: rgba(255,255,255,0.4); font-size: 0.8rem; }
 
-    /* Role Selector */
-    .role-selector { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem; margin-bottom: 1.5rem; }
-    .role-card {
-        display: flex; flex-direction: column; align-items: center; gap: 0.3rem;
-        padding: 0.6rem 0.25rem; border-radius: 10px; cursor: pointer;
-        border: 2px solid var(--border); background: transparent;
-        transition: all 0.25s ease; text-align: center;
+    /* Role Select */
+    .role-select-wrapper { position: relative; margin-bottom: 1.5rem; }
+    .role-select-btn {
+        width: 100%; display: flex; align-items: center; gap: 0.75rem;
+        padding: 0.65rem 1rem; border-radius: 10px; cursor: pointer;
+        border: 2px solid var(--border); background: var(--surface);
+        transition: all 0.25s ease; color: var(--text);
     }
-    .role-card:hover { border-color: var(--text-light); }
-    .role-card.active { border-color: var(--role-color); background: color-mix(in srgb, var(--role-color) 10%, transparent); }
-    .role-card .role-icon {
-        width: 32px; height: 32px; border-radius: 8px;
+    .role-select-btn:hover { border-color: var(--text-light); }
+    .role-select-btn.selected { border-color: var(--role-color); }
+    .role-select-btn .role-icon-box {
+        width: 34px; height: 34px; border-radius: 8px; flex-shrink: 0;
         display: flex; align-items: center; justify-content: center;
         background: var(--border); transition: background 0.25s;
     }
-    .role-card .role-icon svg { width: 18px; height: 18px; stroke: var(--text-light); transition: stroke 0.25s; }
-    .role-card.active .role-icon { background: var(--role-color); }
-    .role-card.active .role-icon svg { stroke: #fff; }
-    .role-card .role-name { font-size: 0.7rem; font-weight: 600; color: var(--text-light); transition: color 0.25s; line-height: 1.2; }
-    .role-card.active .role-name { color: var(--role-color); }
+    .role-select-btn.selected .role-icon-box { background: var(--role-color); }
+    .role-select-btn .role-icon-box svg { width: 18px; height: 18px; stroke: var(--text-light); transition: stroke 0.25s; }
+    .role-select-btn.selected .role-icon-box svg { stroke: #fff; }
+    .role-select-btn .role-text { flex: 1; text-align: left; }
+    .role-select-btn .role-text .role-name { font-size: 0.9rem; font-weight: 600; line-height: 1.2; }
+    .role-select-btn .role-text .role-desc { font-size: 0.75rem; color: var(--text-secondary); line-height: 1.2; margin-top: 1px; }
+    .role-select-btn .role-chevron { flex-shrink: 0; transition: transform 0.25s; }
+    .role-select-btn .role-chevron svg { width: 18px; height: 18px; stroke: var(--text-light); }
+    .role-select-wrapper.open .role-chevron { transform: rotate(180deg); }
+    .role-dropdown {
+        position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 50;
+        background: var(--surface); border: 2px solid var(--border); border-radius: 10px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.3); overflow: hidden;
+        display: none; animation: dropdownFade 0.2s ease;
+    }
+    .role-select-wrapper.open .role-dropdown { display: block; }
+    @keyframes dropdownFade { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
+    .role-option {
+        display: flex; align-items: center; gap: 0.75rem;
+        padding: 0.6rem 1rem; cursor: pointer; transition: background 0.15s;
+    }
+    .role-option:hover { background: rgba(255,255,255,0.05); }
+    .role-option .role-icon-box {
+        width: 34px; height: 34px; border-radius: 8px; flex-shrink: 0;
+        display: flex; align-items: center; justify-content: center;
+    }
+    .role-option .role-icon-box svg { width: 18px; height: 18px; stroke: #fff; }
+    .role-option .role-text { flex: 1; }
+    .role-option .role-text .role-name { font-size: 0.9rem; font-weight: 600; color: var(--text); line-height: 1.2; }
+    .role-option .role-text .role-desc { font-size: 0.75rem; color: var(--text-secondary); line-height: 1.2; margin-top: 1px; }
 
-    /* Success alert */
-    .alert-success { background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.3); border-radius: 8px; padding: 0.75rem 1rem; margin-bottom: 1rem; color: #10b981; font-size: 0.85rem; }
 </style>
 @endpush
 
@@ -48,35 +71,57 @@
             <p class="subtitle" id="loginSubtitle">Selecciona tu rol para continuar</p>
         </div>
 
-        @if(session('success'))
-            <div class="alert-success">{{ session('success') }}</div>
-        @endif
-
-        {{-- Role Selector --}}
-        <div class="role-selector">
-            <div class="role-card {{ old('rol_tipo', '') === 'super_admin' ? 'active' : '' }}" data-role="super_admin" data-color="#0d6efd" data-label="Panel de Administración" style="--role-color: #0d6efd;" onclick="selectRole(this)">
-                <div class="role-icon">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        {{-- Role Select --}}
+        <div class="role-select-wrapper" id="roleWrapper">
+            <div class="role-select-btn" id="roleBtn" onclick="toggleDropdown()">
+                <div class="role-icon-box" id="roleBtnIcon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                 </div>
-                <span class="role-name">Admin</span>
+                <div class="role-text">
+                    <div class="role-name" id="roleBtnName">Selecciona tu rol</div>
+                    <div class="role-desc" id="roleBtnDesc">Haz clic para elegir</div>
+                </div>
+                <div class="role-chevron">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+                </div>
             </div>
-            <div class="role-card {{ old('rol_tipo', '') === 'supervisor' ? 'active' : '' }}" data-role="supervisor" data-color="#10b981" data-label="Panel de Supervisión" style="--role-color: #10b981;" onclick="selectRole(this)">
-                <div class="role-icon">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 14l2 2 4-4"/></svg>
+            <div class="role-dropdown" id="roleDropdown">
+                <div class="role-option" data-role="super_admin" data-color="#0d6efd" data-name="Admin" data-desc="Panel de Administración" data-icon="shield" onclick="pickRole(this)">
+                    <div class="role-icon-box" style="background:#0d6efd;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                    </div>
+                    <div class="role-text">
+                        <div class="role-name">Admin</div>
+                        <div class="role-desc">Panel de Administración</div>
+                    </div>
                 </div>
-                <span class="role-name">Supervisor</span>
-            </div>
-            <div class="role-card {{ old('rol_tipo', '') === 'capturista' ? 'active' : '' }}" data-role="capturista" data-color="#f59e0b" data-label="Captura de Datos" style="--role-color: #f59e0b;" onclick="selectRole(this)">
-                <div class="role-icon">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><line x1="6" y1="8" x2="6" y2="16"/><line x1="10" y1="8" x2="10" y2="16"/><line x1="14" y1="8" x2="14" y2="16"/><line x1="18" y1="8" x2="18" y2="16"/></svg>
+                <div class="role-option" data-role="supervisor" data-color="#10b981" data-name="Supervisor" data-desc="Panel de Supervisión" data-icon="clipboard" onclick="pickRole(this)">
+                    <div class="role-icon-box" style="background:#10b981;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 14l2 2 4-4"/></svg>
+                    </div>
+                    <div class="role-text">
+                        <div class="role-name">Supervisor</div>
+                        <div class="role-desc">Panel de Supervisión</div>
+                    </div>
                 </div>
-                <span class="role-name">Capturista</span>
-            </div>
-            <div class="role-card {{ old('rol_tipo', '') === 'supervisor_invitado' ? 'active' : '' }}" data-role="supervisor_invitado" data-color="#8b5cf6" data-label="Gestión de Traspasos" style="--role-color: #8b5cf6;" onclick="selectRole(this)">
-                <div class="role-icon">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+                <div class="role-option" data-role="capturista" data-color="#f59e0b" data-name="Capturista" data-desc="Captura de Datos" data-icon="barcode" onclick="pickRole(this)">
+                    <div class="role-icon-box" style="background:#f59e0b;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><line x1="6" y1="8" x2="6" y2="16"/><line x1="10" y1="8" x2="10" y2="16"/><line x1="14" y1="8" x2="14" y2="16"/><line x1="18" y1="8" x2="18" y2="16"/></svg>
+                    </div>
+                    <div class="role-text">
+                        <div class="role-name">Capturista</div>
+                        <div class="role-desc">Captura de Datos</div>
+                    </div>
                 </div>
-                <span class="role-name">Invitado</span>
+                <div class="role-option" data-role="supervisor_invitado" data-color="#8b5cf6" data-name="Invitado" data-desc="Gestión de Traspasos" data-icon="transfer" onclick="pickRole(this)">
+                    <div class="role-icon-box" style="background:#8b5cf6;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+                    </div>
+                    <div class="role-text">
+                        <div class="role-name">Invitado</div>
+                        <div class="role-desc">Gestión de Traspasos</div>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -87,9 +132,6 @@
             <div class="form-group">
                 <label class="form-label" for="usuario">Usuario</label>
                 <input type="text" id="usuario" name="usuario" class="form-control" value="{{ old('usuario') }}" placeholder="Ingresa tu usuario" required autofocus>
-                @error('usuario')
-                    <div class="form-error">{{ $message }}</div>
-                @enderror
             </div>
 
             <div class="form-group">
@@ -115,31 +157,72 @@
 </div>
 
 <script>
-function selectRole(el) {
-    // Remove active from all
-    document.querySelectorAll('.role-card').forEach(c => c.classList.remove('active'));
-    // Activate selected
-    el.classList.add('active');
-    // Update hidden input
-    document.getElementById('rolTipoInput').value = el.dataset.role;
-    // Update subtitle
-    document.getElementById('loginSubtitle').textContent = el.dataset.label;
-    document.getElementById('loginSubtitle').style.color = el.dataset.color;
-    // Update button color
-    var btn = document.getElementById('loginBtn');
-    btn.style.background = el.dataset.color;
-    btn.style.borderColor = el.dataset.color;
+function toggleDropdown() {
+    document.getElementById('roleWrapper').classList.toggle('open');
 }
 
-// Apply active state on page load (for old() values)
-document.addEventListener('DOMContentLoaded', function() {
-    var active = document.querySelector('.role-card.active');
-    if (active) {
-        document.getElementById('loginSubtitle').textContent = active.dataset.label;
-        document.getElementById('loginSubtitle').style.color = active.dataset.color;
-        document.getElementById('loginBtn').style.background = active.dataset.color;
-        document.getElementById('loginBtn').style.borderColor = active.dataset.color;
+function pickRole(el) {
+    var role = el.dataset.role;
+    var color = el.dataset.color;
+    var name = el.dataset.name;
+    var desc = el.dataset.desc;
+
+    // Update hidden input
+    document.getElementById('rolTipoInput').value = role;
+
+    // Update button display
+    var btn = document.getElementById('roleBtn');
+    btn.classList.add('selected');
+    btn.style.setProperty('--role-color', color);
+    document.getElementById('roleBtnName').textContent = name;
+    document.getElementById('roleBtnDesc').textContent = desc;
+
+    // Copy the icon SVG from the selected option
+    var iconSvg = el.querySelector('.role-icon-box').innerHTML;
+    var btnIcon = document.getElementById('roleBtnIcon');
+    btnIcon.innerHTML = iconSvg;
+    btnIcon.style.background = color;
+    btnIcon.querySelectorAll('svg').forEach(function(s) { s.style.stroke = '#fff'; });
+
+    // Update subtitle
+    document.getElementById('loginSubtitle').textContent = desc;
+    document.getElementById('loginSubtitle').style.color = color;
+
+    // Update login button color
+    var loginBtn = document.getElementById('loginBtn');
+    loginBtn.style.background = color;
+    loginBtn.style.borderColor = color;
+
+    // Close dropdown
+    document.getElementById('roleWrapper').classList.remove('open');
+}
+
+// Form submit validation — uses global showToast() from layout
+document.querySelector('form').addEventListener('submit', function(e) {
+    if (!document.getElementById('rolTipoInput').value) {
+        e.preventDefault();
+        showToast('Selecciona tu rol antes de iniciar sesión', 'warning');
     }
+});
+
+// Close dropdown on outside click
+document.addEventListener('click', function(e) {
+    var wrapper = document.getElementById('roleWrapper');
+    if (!wrapper.contains(e.target)) {
+        wrapper.classList.remove('open');
+    }
+});
+
+// Restore selection on page load (for old() values) + show login errors as toast
+document.addEventListener('DOMContentLoaded', function() {
+    var saved = document.getElementById('rolTipoInput').value;
+    if (saved) {
+        var opt = document.querySelector('.role-option[data-role="' + saved + '"]');
+        if (opt) pickRole(opt);
+    }
+    @error('usuario')
+        showToast(@json($message), 'error');
+    @enderror
 });
 </script>
 @endsection

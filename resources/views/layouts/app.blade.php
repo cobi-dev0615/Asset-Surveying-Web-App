@@ -379,6 +379,38 @@
         .nav-tabs a:hover { color: var(--text); }
         .nav-tabs a.active { color: var(--primary); border-bottom-color: var(--primary); }
 
+        /* ===== TOAST NOTIFICATIONS ===== */
+        .toast-container {
+            position: fixed; top: 1.25rem; right: 1.25rem; z-index: 9999;
+            display: flex; flex-direction: column; gap: 0.5rem;
+            pointer-events: none;
+        }
+        .toast {
+            display: flex; align-items: center; gap: 0.65rem;
+            padding: 0.7rem 1.15rem; border-radius: var(--radius-lg); min-width: 280px; max-width: 420px;
+            font-size: 0.84rem; font-weight: 500; pointer-events: auto;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+            animation: toastIn 0.35s ease;
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+        .toast.toast-out {
+            opacity: 0; transform: translateX(40px);
+        }
+        .toast svg { width: 18px; height: 18px; flex-shrink: 0; }
+        .toast-success { background: var(--success); color: #fff; }
+        .toast-success svg { stroke: #fff; }
+        .toast-warning { background: #f59e0b; color: #fff; }
+        .toast-warning svg { stroke: #fff; }
+        .toast-error { background: #ef4444; color: #fff; }
+        .toast-error svg { stroke: #fff; }
+        .toast-close {
+            margin-left: auto; background: none; border: none;
+            color: rgba(255,255,255,0.7); cursor: pointer; padding: 0.15rem;
+            line-height: 1; font-size: 1.1rem; transition: color 0.2s;
+        }
+        .toast-close:hover { color: #fff; }
+        @keyframes toastIn { from { opacity: 0; transform: translateX(40px); } to { opacity: 1; transform: translateX(0); } }
+
         /* ===== RESPONSIVE ===== */
         @media (max-width: 768px) {
             .sidebar { transform: translateX(-100%); }
@@ -524,24 +556,14 @@
             </div>
         </div>
         <div class="content">
-            @if(session('success'))
-                <div class="alert alert-success">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-                    {{ session('success') }}
-                </div>
-            @endif
-            @if(session('error'))
-                <div class="alert alert-danger">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
-                    {{ session('error') }}
-                </div>
-            @endif
             @yield('content')
         </div>
     </div>
     @else
         @yield('content')
     @endauth
+
+    <div class="toast-container" id="toastContainer"></div>
 
     @stack('scripts')
     <script>
@@ -551,6 +573,41 @@
             const sub = btn.nextElementSibling;
             if (sub) sub.classList.toggle('open');
         }
+
+        /* === Toast Notification System === */
+        var _toastIcons = {
+            success: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>',
+            warning: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
+            error: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>'
+        };
+
+        function showToast(message, type) {
+            type = type || 'success';
+            var container = document.getElementById('toastContainer');
+            var toast = document.createElement('div');
+            toast.className = 'toast toast-' + type;
+            toast.innerHTML = (_toastIcons[type] || '') +
+                '<span>' + message + '</span>' +
+                '<button class="toast-close" onclick="dismissToast(this.parentElement)">&times;</button>';
+            container.appendChild(toast);
+            setTimeout(function() { dismissToast(toast); }, 4500);
+        }
+
+        function dismissToast(toast) {
+            if (!toast || toast.classList.contains('toast-out')) return;
+            toast.classList.add('toast-out');
+            setTimeout(function() { toast.remove(); }, 300);
+        }
+
+        @if(session('success'))
+            showToast(@json(session('success')), 'success');
+        @endif
+        @if(session('error'))
+            showToast(@json(session('error')), 'error');
+        @endif
+        @if(session('warning'))
+            showToast(@json(session('warning')), 'warning');
+        @endif
     </script>
 </body>
 </html>

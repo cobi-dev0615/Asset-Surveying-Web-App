@@ -92,32 +92,46 @@
             {{-- Left: Area Table --}}
             <div>
                 <div class="table-wrapper">
-                    <table id="tablaAvanceArea">
+                    @php $totalArea = collect($avancePorArea)->sum('cantidad'); @endphp
+                    <table id="tablaAvanceArea" class="dashboard-table">
                         <thead>
                             <tr>
+                                <th style="width:24px;">#</th>
                                 <th>DEPARTAMENTO / ALMACÉN</th>
-                                <th>ACTIVOS CONTADOS</th>
+                                <th style="width:110px; text-align:right;">CONTADOS</th>
+                                <th style="width:60px; text-align:right;">%</th>
+                                <th style="width:120px;"></th>
                             </tr>
                         </thead>
                         <tbody id="tbodyArea">
-                            @php $totalArea = 0; @endphp
-                            @forelse($avancePorArea as $area)
+                            @forelse($avancePorArea as $i => $area)
+                            @php $pct = $totalArea > 0 ? round(($area['cantidad'] / $totalArea) * 100, 1) : 0; @endphp
                             <tr>
-                                <td>{{ $area['area'] }}</td>
-                                <td style="text-align:center;">{{ number_format($area['cantidad']) }}</td>
+                                <td style="color:var(--text-secondary); font-size:0.75rem;">{{ $i + 1 }}</td>
+                                <td>
+                                    <span class="color-dot" style="background:{{ $colores[$i % count($colores)] ?? '#999' }};"></span>
+                                    {{ $area['area'] }}
+                                </td>
+                                <td style="text-align:right; font-weight:600;">{{ number_format($area['cantidad']) }}</td>
+                                <td style="text-align:right; color:var(--text-secondary); font-size:0.8rem;">{{ $pct }}%</td>
+                                <td>
+                                    <div class="mini-bar"><div class="mini-bar-fill" style="width:{{ $pct }}%; background:{{ $colores[$i % count($colores)] ?? '#999' }};"></div></div>
+                                </td>
                             </tr>
-                            @php $totalArea += $area['cantidad']; @endphp
                             @empty
                             <tr>
-                                <td colspan="2" style="text-align:center; color:var(--text-secondary); padding:1.5rem;">Sin datos</td>
+                                <td colspan="5" style="text-align:center; color:var(--text-secondary); padding:1.5rem;">Sin datos</td>
                             </tr>
                             @endforelse
                         </tbody>
                         <tfoot id="tfootArea">
                             @if(count($avancePorArea) > 0)
-                            <tr style="background:#f0f0f0; font-weight:700;">
-                                <td>TOTAL</td>
-                                <td style="text-align:center; color:var(--primary);">{{ number_format($totalArea) }}</td>
+                            <tr class="total-row">
+                                <td></td>
+                                <td style="font-weight:700;">TOTAL</td>
+                                <td style="text-align:right; font-weight:700; color:var(--primary);">{{ number_format($totalArea) }}</td>
+                                <td style="text-align:right; font-weight:700; font-size:0.8rem;">100%</td>
+                                <td></td>
                             </tr>
                             @endif
                         </tfoot>
@@ -158,32 +172,46 @@
         </div>
         {{-- Category Table --}}
         <div class="table-wrapper">
-            <table id="tablaAvanceCategoria">
+            @php $totalCat = collect($avancePorCategoria)->sum('cantidad'); @endphp
+            <table id="tablaAvanceCategoria" class="dashboard-table">
                 <thead>
                     <tr>
+                        <th style="width:24px;">#</th>
                         <th>CATEGORÍA</th>
-                        <th>CONTADOS</th>
+                        <th style="width:110px; text-align:right;">CONTADOS</th>
+                        <th style="width:60px; text-align:right;">%</th>
+                        <th style="width:120px;"></th>
                     </tr>
                 </thead>
                 <tbody id="tbodyCategoria">
-                    @php $totalCat = 0; @endphp
-                    @forelse($avancePorCategoria as $cat)
+                    @forelse($avancePorCategoria as $i => $cat)
+                    @php $pct = $totalCat > 0 ? round(($cat['cantidad'] / $totalCat) * 100, 1) : 0; @endphp
                     <tr>
-                        <td>{{ $cat['categoria'] }}</td>
-                        <td style="text-align:center;">{{ number_format($cat['cantidad']) }}</td>
+                        <td style="color:var(--text-secondary); font-size:0.75rem;">{{ $i + 1 }}</td>
+                        <td>
+                            <span class="color-dot" style="background:{{ $colores[$i % count($colores)] ?? '#999' }};"></span>
+                            {{ $cat['categoria'] }}
+                        </td>
+                        <td style="text-align:right; font-weight:600;">{{ number_format($cat['cantidad']) }}</td>
+                        <td style="text-align:right; color:var(--text-secondary); font-size:0.8rem;">{{ $pct }}%</td>
+                        <td>
+                            <div class="mini-bar"><div class="mini-bar-fill" style="width:{{ $pct }}%; background:{{ $colores[$i % count($colores)] ?? '#999' }};"></div></div>
+                        </td>
                     </tr>
-                    @php $totalCat += $cat['cantidad']; @endphp
                     @empty
                     <tr>
-                        <td colspan="2" style="text-align:center; color:var(--text-secondary); padding:1.5rem;">Sin datos</td>
+                        <td colspan="5" style="text-align:center; color:var(--text-secondary); padding:1.5rem;">Sin datos</td>
                     </tr>
                     @endforelse
                 </tbody>
                 <tfoot id="tfootCategoria">
                     @if(count($avancePorCategoria) > 0)
-                    <tr style="background:#f0f0f0; font-weight:700;">
-                        <td>TOTAL</td>
-                        <td style="text-align:center; color:var(--primary);">{{ number_format($totalCat) }}</td>
+                    <tr class="total-row">
+                        <td></td>
+                        <td style="font-weight:700;">TOTAL</td>
+                        <td style="text-align:right; font-weight:700; color:var(--primary);">{{ number_format($totalCat) }}</td>
+                        <td style="text-align:right; font-weight:700; font-size:0.8rem;">100%</td>
+                        <td></td>
                     </tr>
                     @endif
                 </tfoot>
@@ -259,16 +287,24 @@ function refreshAvanceArea() {
             var total = 0;
 
             if (data.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="2" style="text-align:center; color:var(--text-secondary); padding:1.5rem;">Sin datos</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--text-secondary); padding:1.5rem;">Sin datos</td></tr>';
                 tfoot.innerHTML = '';
             } else {
+                data.forEach(function(r) { total += r.cantidad; });
                 var rows = '';
-                data.forEach(function(r) {
-                    rows += '<tr><td>' + r.area + '</td><td style="text-align:center;">' + fmt(r.cantidad) + '</td></tr>';
-                    total += r.cantidad;
+                data.forEach(function(r, i) {
+                    var pct = total > 0 ? ((r.cantidad / total) * 100).toFixed(1) : 0;
+                    var c = colores[i % colores.length];
+                    rows += '<tr>'
+                        + '<td style="color:var(--text-secondary);font-size:0.75rem;">' + (i+1) + '</td>'
+                        + '<td><span class="color-dot" style="background:' + c + ';"></span>' + r.area + '</td>'
+                        + '<td style="text-align:right;font-weight:600;">' + fmt(r.cantidad) + '</td>'
+                        + '<td style="text-align:right;color:var(--text-secondary);font-size:0.8rem;">' + pct + '%</td>'
+                        + '<td><div class="mini-bar"><div class="mini-bar-fill" style="width:' + pct + '%;background:' + c + ';"></div></div></td>'
+                        + '</tr>';
                 });
                 tbody.innerHTML = rows;
-                tfoot.innerHTML = '<tr style="background:#f0f0f0; font-weight:700;"><td>TOTAL</td><td style="text-align:center; color:var(--primary);">' + fmt(total) + '</td></tr>';
+                tfoot.innerHTML = '<tr class="total-row"><td></td><td style="font-weight:700;">TOTAL</td><td style="text-align:right;font-weight:700;color:var(--primary);">' + fmt(total) + '</td><td style="text-align:right;font-weight:700;font-size:0.8rem;">100%</td><td></td></tr>';
             }
 
             // Update chart
@@ -303,16 +339,24 @@ function refreshAvanceCategoria() {
             var total = 0;
 
             if (data.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="2" style="text-align:center; color:var(--text-secondary); padding:1.5rem;">Sin datos</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--text-secondary); padding:1.5rem;">Sin datos</td></tr>';
                 tfoot.innerHTML = '';
             } else {
+                data.forEach(function(r) { total += r.cantidad; });
                 var rows = '';
-                data.forEach(function(r) {
-                    rows += '<tr><td>' + r.categoria + '</td><td style="text-align:center;">' + fmt(r.cantidad) + '</td></tr>';
-                    total += r.cantidad;
+                data.forEach(function(r, i) {
+                    var pct = total > 0 ? ((r.cantidad / total) * 100).toFixed(1) : 0;
+                    var c = colores[i % colores.length];
+                    rows += '<tr>'
+                        + '<td style="color:var(--text-secondary);font-size:0.75rem;">' + (i+1) + '</td>'
+                        + '<td><span class="color-dot" style="background:' + c + ';"></span>' + r.categoria + '</td>'
+                        + '<td style="text-align:right;font-weight:600;">' + fmt(r.cantidad) + '</td>'
+                        + '<td style="text-align:right;color:var(--text-secondary);font-size:0.8rem;">' + pct + '%</td>'
+                        + '<td><div class="mini-bar"><div class="mini-bar-fill" style="width:' + pct + '%;background:' + c + ';"></div></div></td>'
+                        + '</tr>';
                 });
                 tbody.innerHTML = rows;
-                tfoot.innerHTML = '<tr style="background:#f0f0f0; font-weight:700;"><td>TOTAL</td><td style="text-align:center; color:var(--primary);">' + fmt(total) + '</td></tr>';
+                tfoot.innerHTML = '<tr class="total-row"><td></td><td style="font-weight:700;">TOTAL</td><td style="text-align:right;font-weight:700;color:var(--primary);">' + fmt(total) + '</td><td style="text-align:right;font-weight:700;font-size:0.8rem;">100%</td><td></td></tr>';
             }
 
             // Update chart
@@ -418,5 +462,36 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 <style>
 @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+/* Dashboard table styling */
+.dashboard-table { border-collapse: separate; border-spacing: 0; }
+.dashboard-table thead th {
+    font-size: 0.72rem; font-weight: 600; letter-spacing: 0.03em;
+    color: var(--text-secondary); border-bottom: 2px solid #dee2e6;
+    padding: 0.5rem 0.6rem; white-space: nowrap;
+}
+.dashboard-table tbody td {
+    padding: 0.45rem 0.6rem; font-size: 0.82rem; border-bottom: 1px solid #f0f0f0;
+    vertical-align: middle;
+}
+.dashboard-table tbody tr:hover { background: #f8f9fa; }
+.dashboard-table .total-row td {
+    border-top: 2px solid #dee2e6; border-bottom: none;
+    padding: 0.55rem 0.6rem; background: #f8f9fa;
+}
+
+/* Color dot indicator */
+.color-dot {
+    display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+    margin-right: 6px; vertical-align: middle; flex-shrink: 0;
+}
+
+/* Mini progress bar */
+.mini-bar {
+    width: 100%; height: 6px; background: #eee; border-radius: 3px; overflow: hidden;
+}
+.mini-bar-fill {
+    height: 100%; border-radius: 3px; transition: width 0.4s ease;
+}
 </style>
 @endpush

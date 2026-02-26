@@ -31,10 +31,11 @@ class DashboardController extends Controller
         $avanceGeneral = $this->getAvanceGeneral($sesionId, $sesionActual);
         $avancePorArea = $this->getAvancePorArea($sesionId, $sesionActual);
         $avancePorCategoria = $this->getAvancePorCategoria($sesionId, $sesionActual);
+        $colores = ['#ff4444','#00C851','#4285F4','#33b5e5','#ffbb33','#aa66cc','#2BBBAD','#2E2E2E','#3F729B','#c51162'];
 
         return view('dashboard', compact(
             'user', 'sesiones', 'sesionId', 'sesionActual',
-            'avanceGeneral', 'avancePorArea', 'avancePorCategoria'
+            'avanceGeneral', 'avancePorArea', 'avancePorCategoria', 'colores'
         ));
     }
 

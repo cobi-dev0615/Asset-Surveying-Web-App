@@ -30,6 +30,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/dashboard/avance-general', [DashboardController::class, 'refreshAvanceGeneral']);
     Route::get('/dashboard/avance-area', [DashboardController::class, 'refreshAvanceArea']);
     Route::get('/dashboard/avance-categoria', [DashboardController::class, 'refreshAvanceCategoria']);
+    Route::get('/dashboard/sesiones', [DashboardController::class, 'sesiones']);
     Route::get('/sucursales-por-empresa/{empresa}', [InventarioController::class, 'sucursalesPorEmpresa']);
 
     // === Super Admin only ===

@@ -19,6 +19,12 @@ class DashboardController extends Controller
     {
         $user = Auth::user();
 
+        // Empresas for the selection modal (scoped to user's assigned empresas)
+        $empresas = Empresa::where('eliminado', false)
+            ->when(!$user->esAdmin(), fn ($q) => $q->whereIn('id', $user->empresas->pluck('id')))
+            ->orderBy('nombre')
+            ->get(['id', 'nombre']);
+
         $sesiones = ActivoFijoInventario::where('eliminado', false)
             ->when(!$user->esAdmin(), fn ($q) => $q->whereIn('empresa_id', $user->empresas->pluck('id')))
             ->with('empresa', 'sucursal')
@@ -34,9 +40,33 @@ class DashboardController extends Controller
         $colores = ['#ff4444','#00C851','#4285F4','#33b5e5','#ffbb33','#aa66cc','#2BBBAD','#2E2E2E','#3F729B','#c51162'];
 
         return view('dashboard', compact(
-            'user', 'sesiones', 'sesionId', 'sesionActual',
+            'user', 'empresas', 'sesiones', 'sesionId', 'sesionActual',
             'avanceGeneral', 'avancePorArea', 'avancePorCategoria', 'colores'
         ));
+    }
+
+    /**
+     * Return sessions filtered by empresa + sucursal (JSON for modal).
+     */
+    public function sesiones(Request $request)
+    {
+        $user = Auth::user();
+
+        $query = ActivoFijoInventario::where('eliminado', false)
+            ->when(!$user->esAdmin(), fn ($q) => $q->whereIn('empresa_id', $user->empresas->pluck('id')))
+            ->when($request->empresa_id, fn ($q, $v) => $q->where('empresa_id', $v))
+            ->when($request->sucursal_id, fn ($q, $v) => $q->where('sucursal_id', $v))
+            ->with('empresa:id,nombre', 'sucursal:id,nombre,codigo')
+            ->orderBy('created_at', 'desc')
+            ->get(['id', 'empresa_id', 'sucursal_id', 'nombre', 'created_at']);
+
+        return response()->json($query->map(fn ($s) => [
+            'id' => $s->id,
+            'nombre' => $s->nombre,
+            'empresa' => $s->empresa->nombre ?? '',
+            'sucursal' => ($s->sucursal->codigo ?? '') . ' - ' . ($s->sucursal->nombre ?? ''),
+            'fecha' => $s->created_at?->format('d/m/Y'),
+        ]));
     }
 
     public function refreshAvanceGeneral(Request $request)

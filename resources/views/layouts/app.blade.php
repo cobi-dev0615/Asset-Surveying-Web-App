@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'SER Inventarios')</title>
+    <link rel="icon" href="/favicon.ico" type="image/x-icon">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
     <style>
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -154,20 +156,48 @@
         .topbar-left h1 { font-size: 1rem; font-weight: 600; color: var(--text); }
         .topbar-right { display: flex; align-items: center; gap: 0.75rem; }
         .topbar-user {
-            display: flex; align-items: center; gap: 0.6rem;
-            padding: 0.3rem 0.5rem;
-            border-radius: var(--radius);
-            cursor: default;
+            position: relative;
         }
         .topbar-avatar {
-            width: 34px; height: 34px; border-radius: 50%;
+            width: 36px; height: 36px; border-radius: 50%;
             background: var(--primary); color: #fff;
             display: flex; align-items: center; justify-content: center;
             font-weight: 600; font-size: 0.75rem;
+            cursor: pointer; border: 2px solid transparent;
+            transition: border-color 0.2s;
         }
-        .topbar-user-info { line-height: 1.2; }
-        .topbar-user-info .name { font-size: 0.82rem; font-weight: 500; }
-        .topbar-user-info .role { font-size: 0.68rem; color: var(--text-secondary); }
+        .topbar-avatar:hover { border-color: var(--border-dark); }
+        .topbar-user.open .topbar-avatar { border-color: var(--primary); }
+        .topbar-dropdown {
+            display: none; position: absolute; top: calc(100% + 8px); right: 0;
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+            min-width: 220px; z-index: 60; overflow: hidden;
+            animation: topbarDropIn 0.2s ease;
+        }
+        .topbar-user.open .topbar-dropdown { display: block; }
+        @keyframes topbarDropIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
+        .topbar-dropdown-header {
+            display: flex; align-items: center; gap: 0.7rem;
+            padding: 0.85rem 1rem; border-bottom: 1px solid var(--border);
+        }
+        .topbar-dropdown-header .dropdown-avatar {
+            width: 40px; height: 40px; border-radius: 50%;
+            background: var(--primary); color: #fff;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 600; font-size: 0.85rem; flex-shrink: 0;
+        }
+        .topbar-dropdown-header .dropdown-info { line-height: 1.3; }
+        .topbar-dropdown-header .dropdown-info .name { font-size: 0.85rem; font-weight: 600; color: var(--text); }
+        .topbar-dropdown-header .dropdown-info .role { font-size: 0.72rem; color: var(--text-secondary); }
+        .topbar-dropdown-item {
+            display: flex; align-items: center; gap: 0.6rem;
+            padding: 0.6rem 1rem; font-size: 0.82rem; color: var(--text);
+            cursor: pointer; transition: background 0.15s; border: none;
+            background: none; width: 100%; text-align: left;
+        }
+        .topbar-dropdown-item:hover { background: var(--bg); }
+        .topbar-dropdown-item svg { width: 16px; height: 16px; color: var(--text-secondary); }
 
         .content { padding: 1.25rem 1.5rem 2rem; }
 
@@ -539,20 +569,31 @@
                 <h1>@yield('title')</h1>
             </div>
             <div class="topbar-right">
-                <div class="topbar-user">
-                    <div class="topbar-avatar">{{ strtoupper(substr(Auth::user()->nombres, 0, 2)) }}</div>
-                    <div class="topbar-user-info">
-                        <div class="name">{{ Auth::user()->nombres }}</div>
-                        <div class="role">{{ Auth::user()->rol->nombre }}</div>
+                <button class="btn btn-ghost" id="fullscreenBtn" onclick="toggleFullscreen()" title="Pantalla completa">
+                    <svg id="fsExpand" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><polyline points="21 15 21 21 15 21"/><polyline points="3 9 3 3 9 3"/></svg>
+                    <svg id="fsCompress" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:none;"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><polyline points="14 20 14 14 20 14"/><polyline points="10 4 10 10 4 10"/></svg>
+                </button>
+                <div class="topbar-user" id="topbarUser">
+                    <div class="topbar-avatar" onclick="document.getElementById('topbarUser').classList.toggle('open')">
+                        {{ strtoupper(substr(Auth::user()->nombres, 0, 2)) }}
+                    </div>
+                    <div class="topbar-dropdown">
+                        <div class="topbar-dropdown-header">
+                            <div class="dropdown-avatar">{{ strtoupper(substr(Auth::user()->nombres, 0, 2)) }}</div>
+                            <div class="dropdown-info">
+                                <div class="name">{{ Auth::user()->nombres }}</div>
+                                <div class="role">{{ Auth::user()->rol->nombre }}</div>
+                            </div>
+                        </div>
+                        <form method="POST" action="{{ route('logout') }}">
+                            @csrf
+                            <button type="submit" class="topbar-dropdown-item">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                                Cerrar sesión
+                            </button>
+                        </form>
                     </div>
                 </div>
-                <form method="POST" action="{{ route('logout') }}" style="display:inline;">
-                    @csrf
-                    <button type="submit" class="btn btn-sm btn-outline">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-                        Cerrar Sesión
-                    </button>
-                </form>
             </div>
         </div>
         <div class="content">
@@ -573,6 +614,26 @@
             const sub = btn.nextElementSibling;
             if (sub) sub.classList.toggle('open');
         }
+
+        // Fullscreen toggle
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen();
+            } else {
+                document.exitFullscreen();
+            }
+        }
+        document.addEventListener('fullscreenchange', function() {
+            var isFs = !!document.fullscreenElement;
+            document.getElementById('fsExpand').style.display = isFs ? 'none' : '';
+            document.getElementById('fsCompress').style.display = isFs ? '' : 'none';
+        });
+
+        // Close user dropdown on outside click
+        document.addEventListener('click', function(e) {
+            var u = document.getElementById('topbarUser');
+            if (u && !u.contains(e.target)) u.classList.remove('open');
+        });
 
         /* === Toast Notification System === */
         var _toastIcons = {

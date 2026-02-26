@@ -27,6 +27,9 @@ Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 Route::middleware('auth')->group(function () {
     // === All authenticated web users ===
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/dashboard/avance-general', [DashboardController::class, 'refreshAvanceGeneral']);
+    Route::get('/dashboard/avance-area', [DashboardController::class, 'refreshAvanceArea']);
+    Route::get('/dashboard/avance-categoria', [DashboardController::class, 'refreshAvanceCategoria']);
     Route::get('/sucursales-por-empresa/{empresa}', [InventarioController::class, 'sucursalesPorEmpresa']);
 
     // === Super Admin only ===

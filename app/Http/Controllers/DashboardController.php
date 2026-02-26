@@ -19,92 +19,114 @@ class DashboardController extends Controller
     {
         $user = Auth::user();
 
-        // Get all active sessions for the session selector (scoped by empresa)
         $sesiones = ActivoFijoInventario::where('eliminado', false)
             ->when(!$user->esAdmin(), fn ($q) => $q->whereIn('empresa_id', $user->empresas->pluck('id')))
             ->with('empresa', 'sucursal')
             ->orderBy('created_at', 'desc')
             ->get();
 
-        // Use selected session or the latest one
         $sesionId = $request->input('sesion_id', $sesiones->first()?->id);
         $sesionActual = $sesiones->firstWhere('id', $sesionId);
 
-        // ── Panel 1: Avance General del Inventario ──
+        $avanceGeneral = $this->getAvanceGeneral($sesionId, $sesionActual);
+        $avancePorArea = $this->getAvancePorArea($sesionId, $sesionActual);
+        $avancePorCategoria = $this->getAvancePorCategoria($sesionId, $sesionActual);
+
+        return view('dashboard', compact(
+            'user', 'sesiones', 'sesionId', 'sesionActual',
+            'avanceGeneral', 'avancePorArea', 'avancePorCategoria'
+        ));
+    }
+
+    public function refreshAvanceGeneral(Request $request)
+    {
+        $sesionId = $request->input('sesion_id');
+        $sesionActual = $sesionId ? ActivoFijoInventario::find($sesionId) : null;
+        return response()->json($this->getAvanceGeneral($sesionId, $sesionActual));
+    }
+
+    public function refreshAvanceArea(Request $request)
+    {
+        $sesionId = $request->input('sesion_id');
+        $sesionActual = $sesionId ? ActivoFijoInventario::find($sesionId) : null;
+        return response()->json($this->getAvancePorArea($sesionId, $sesionActual));
+    }
+
+    public function refreshAvanceCategoria(Request $request)
+    {
+        $sesionId = $request->input('sesion_id');
+        $sesionActual = $sesionId ? ActivoFijoInventario::find($sesionId) : null;
+        return response()->json($this->getAvancePorCategoria($sesionId, $sesionActual));
+    }
+
+    private function getAvanceGeneral($sesionId, $sesionActual): array
+    {
         $totalCatalogo = 0;
         $totalEncontrados = 0;
         $totalNoEncontrados = 0;
 
         if ($sesionActual) {
             $totalCatalogo = ActivoFijoProducto::where('eliminado', false)
-                ->where('inventario_id', $sesionId)
-                ->count();
-
+                ->where('inventario_id', $sesionId)->count();
             $totalEncontrados = ActivoFijoRegistro::where('inventario_id', $sesionId)
-                ->where('eliminado', false)
-                ->count();
-
+                ->where('eliminado', false)->count();
             $totalNoEncontrados = ActivoFijoProducto::where('inventario_id', $sesionId)
-                ->where('no_encontrado', true)
-                ->where('eliminado', false)
-                ->count();
+                ->where('no_encontrado', true)->where('eliminado', false)->count();
         }
 
         $pendientes = max(0, $totalCatalogo - $totalEncontrados - $totalNoEncontrados);
 
-        $avanceGeneral = [
+        $data = [
             'catalogo' => $totalCatalogo,
             'encontrados' => $totalEncontrados,
             'no_encontrados' => $totalNoEncontrados,
             'pendientes' => $pendientes,
         ];
 
-        // Percentages for donut chart
         if ($totalCatalogo > 0) {
-            $avanceGeneral['pct_encontrados'] = round(($totalEncontrados / $totalCatalogo) * 100, 1);
-            $avanceGeneral['pct_no_encontrados'] = round(($totalNoEncontrados / $totalCatalogo) * 100, 1);
-            $avanceGeneral['pct_pendientes'] = round(100 - $avanceGeneral['pct_encontrados'] - $avanceGeneral['pct_no_encontrados'], 1);
+            $data['pct_encontrados'] = round(($totalEncontrados / $totalCatalogo) * 100, 1);
+            $data['pct_no_encontrados'] = round(($totalNoEncontrados / $totalCatalogo) * 100, 1);
+            $data['pct_pendientes'] = round(100 - $data['pct_encontrados'] - $data['pct_no_encontrados'], 1);
         } else {
-            $avanceGeneral['pct_encontrados'] = 0;
-            $avanceGeneral['pct_no_encontrados'] = 0;
-            $avanceGeneral['pct_pendientes'] = 100;
+            $data['pct_encontrados'] = 0;
+            $data['pct_no_encontrados'] = 0;
+            $data['pct_pendientes'] = 100;
         }
 
-        // ── Panel 2: Avance por Área ──
-        $avancePorArea = [];
-        if ($sesionActual) {
-            $avancePorArea = ActivoFijoRegistro::where('inventario_id', $sesionId)
-                ->where('eliminado', false)
-                ->select('ubicacion_1', DB::raw('COUNT(*) as cantidad'))
-                ->groupBy('ubicacion_1')
-                ->orderByDesc('cantidad')
-                ->get()
-                ->map(fn ($row) => [
-                    'area' => $row->ubicacion_1 ?: 'Sin ubicación',
-                    'cantidad' => $row->cantidad,
-                ])
-                ->toArray();
-        }
+        return $data;
+    }
 
-        // ── Panel 3: Activos por Categoría ──
-        $avancePorCategoria = [];
-        if ($sesionActual) {
-            $avancePorCategoria = ActivoFijoRegistro::where('inventario_id', $sesionId)
-                ->where('eliminado', false)
-                ->select('categoria', DB::raw('COUNT(*) as cantidad'))
-                ->groupBy('categoria')
-                ->orderByDesc('cantidad')
-                ->get()
-                ->map(fn ($row) => [
-                    'categoria' => $row->categoria ?: 'Sin categoría',
-                    'cantidad' => $row->cantidad,
-                ])
-                ->toArray();
-        }
+    private function getAvancePorArea($sesionId, $sesionActual): array
+    {
+        if (!$sesionActual) return [];
 
-        return view('dashboard', compact(
-            'user', 'sesiones', 'sesionId', 'sesionActual',
-            'avanceGeneral', 'avancePorArea', 'avancePorCategoria'
-        ));
+        return ActivoFijoRegistro::where('inventario_id', $sesionId)
+            ->where('eliminado', false)
+            ->select('ubicacion_1', DB::raw('COUNT(*) as cantidad'))
+            ->groupBy('ubicacion_1')
+            ->orderByDesc('cantidad')
+            ->get()
+            ->map(fn ($row) => [
+                'area' => $row->ubicacion_1 ?: 'Sin ubicación',
+                'cantidad' => $row->cantidad,
+            ])
+            ->toArray();
+    }
+
+    private function getAvancePorCategoria($sesionId, $sesionActual): array
+    {
+        if (!$sesionActual) return [];
+
+        return ActivoFijoRegistro::where('inventario_id', $sesionId)
+            ->where('eliminado', false)
+            ->select('categoria', DB::raw('COUNT(*) as cantidad'))
+            ->groupBy('categoria')
+            ->orderByDesc('cantidad')
+            ->get()
+            ->map(fn ($row) => [
+                'categoria' => $row->categoria ?: 'Sin categoría',
+                'cantidad' => $row->cantidad,
+            ])
+            ->toArray();
     }
 }

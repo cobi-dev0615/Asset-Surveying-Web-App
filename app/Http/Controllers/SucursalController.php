@@ -11,18 +11,10 @@ class SucursalController extends Controller
 {
     public function index(Request $request)
     {
-        $user = Auth::user();
-        $empresaIds = $user->esAdmin() ? null : $user->empresas->pluck('id');
+        $empresaId = $this->selectedEmpresaId();
 
-        $query = Sucursal::where('eliminado', false)->with('empresa');
-
-        if ($empresaIds !== null) {
-            $query->whereIn('empresa_id', $empresaIds);
-        }
-
-        if ($request->filled('empresa_id')) {
-            $query->where('empresa_id', $request->empresa_id);
-        }
+        $query = Sucursal::where('eliminado', false)->with('empresa')
+            ->where('empresa_id', $empresaId);
 
         if ($request->filled('buscar')) {
             $query->where(function ($q) use ($request) {
@@ -33,11 +25,8 @@ class SucursalController extends Controller
         }
 
         $sucursales = $query->orderBy('nombre')->paginate(15)->withQueryString();
-        $empresas = Empresa::where('eliminado', false)
-            ->when($empresaIds, fn($q) => $q->whereIn('id', $empresaIds))
-            ->orderBy('nombre')->get();
 
-        return view('sucursales.index', compact('sucursales', 'empresas'));
+        return view('sucursales.index', compact('sucursales'));
     }
 
     public function create()

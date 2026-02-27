@@ -12,7 +12,8 @@ class UsuarioController extends Controller
 {
     public function index(Request $request)
     {
-        $query = User::where('eliminado', false)->with('rol', 'empresas');
+        $query = User::where('eliminado', false)->with('rol', 'empresas')
+            ->whereHas('empresas', fn($q) => $q->where('empresas.id', $this->selectedEmpresaId()));
 
         if ($request->filled('buscar')) {
             $query->where(function ($q) use ($request) {

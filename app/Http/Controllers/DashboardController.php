@@ -18,15 +18,15 @@ class DashboardController extends Controller
     public function index(Request $request)
     {
         $user = Auth::user();
+        $empresaId = $this->selectedEmpresaId();
 
-        // Empresas for the selection modal (scoped to user's assigned empresas)
         $empresas = Empresa::where('eliminado', false)
             ->when(!$user->esAdmin(), fn ($q) => $q->whereIn('id', $user->empresas->pluck('id')))
             ->orderBy('nombre')
             ->get(['id', 'nombre']);
 
         $sesiones = ActivoFijoInventario::where('eliminado', false)
-            ->when(!$user->esAdmin(), fn ($q) => $q->whereIn('empresa_id', $user->empresas->pluck('id')))
+            ->where('empresa_id', $empresaId)
             ->with('empresa', 'sucursal')
             ->orderBy('created_at', 'desc')
             ->get();
@@ -50,10 +50,10 @@ class DashboardController extends Controller
      */
     public function sesiones(Request $request)
     {
-        $user = Auth::user();
+        $empresaId = $this->selectedEmpresaId();
 
         $query = ActivoFijoInventario::where('eliminado', false)
-            ->when(!$user->esAdmin(), fn ($q) => $q->whereIn('empresa_id', $user->empresas->pluck('id')))
+            ->where('empresa_id', $empresaId)
             ->when($request->empresa_id, fn ($q, $v) => $q->where('empresa_id', $v))
             ->when($request->sucursal_id, fn ($q, $v) => $q->where('sucursal_id', $v))
             ->with('empresa:id,nombre', 'sucursal:id,nombre,codigo')

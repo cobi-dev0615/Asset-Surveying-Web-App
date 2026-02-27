@@ -6,37 +6,16 @@ use App\Models\ActivoFijoInventario;
 use App\Models\ActivoFijoProducto;
 use App\Models\Empresa;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 
 class ActivoFijoProductoController extends Controller
 {
-    private function empresaIds()
-    {
-        $user = Auth::user();
-        return $user->esAdmin() ? null : $user->empresas->pluck('id');
-    }
-
-    private function scopedEmpresas($empresaIds)
-    {
-        return Empresa::where('eliminado', false)
-            ->when($empresaIds, fn($q) => $q->whereIn('id', $empresaIds))
-            ->orderBy('nombre')->get();
-    }
-
     public function index(Request $request)
     {
-        $empresaIds = $this->empresaIds();
+        $empresaId = $this->selectedEmpresaId();
 
         $query = ActivoFijoProducto::where('eliminado', false)
-            ->with('empresa', 'inventario.sucursal');
-
-        if ($empresaIds !== null) {
-            $query->whereIn('empresa_id', $empresaIds);
-        }
-
-        if ($request->filled('empresa_id')) {
-            $query->where('empresa_id', $request->empresa_id);
-        }
+            ->with('empresa', 'inventario.sucursal')
+            ->where('empresa_id', $empresaId);
 
         if ($request->filled('inventario_id')) {
             $query->where('inventario_id', $request->inventario_id);
@@ -47,20 +26,28 @@ class ActivoFijoProductoController extends Controller
                 $q->where('descripcion', 'like', "%{$request->buscar}%")
                   ->orWhere('codigo_1', 'like', "%{$request->buscar}%")
                   ->orWhere('codigo_2', 'like', "%{$request->buscar}%")
+                  ->orWhere('codigo_3', 'like', "%{$request->buscar}%")
+                  ->orWhere('tag_rfid', 'like', "%{$request->buscar}%")
+                  ->orWhere('n_serie', 'like', "%{$request->buscar}%")
                   ->orWhere('marca', 'like', "%{$request->buscar}%")
                   ->orWhere('categoria_2', 'like', "%{$request->buscar}%");
             });
         }
 
-        $productos = $query->orderBy('codigo_1')->paginate(20)->withQueryString();
-        $empresas = $this->scopedEmpresas($empresaIds);
+        $sortable = ['codigo_1','codigo_2','codigo_3','tag_rfid','n_serie','n_serie_nuevo','categoria_2','descripcion','marca','forzado','traspasado'];
+        $sort = in_array($request->sort, $sortable) ? $request->sort : 'codigo_1';
+        $dir = $request->dir === 'desc' ? 'desc' : 'asc';
+        $perPage = in_array((int) $request->per_page, [10,25,50,100]) ? (int) $request->per_page : 50;
+
+        $productos = $query->orderBy($sort, $dir)->paginate($perPage)->withQueryString();
+        $empresas = Empresa::where('id', $empresaId)->get();
         $sesiones = ActivoFijoInventario::where('eliminado', false)
-            ->when($empresaIds, fn($q) => $q->whereIn('empresa_id', $empresaIds))
+            ->where('empresa_id', $empresaId)
             ->with('empresa', 'sucursal')
             ->orderBy('created_at', 'desc')
             ->get();
 
-        return view('activo-fijo-productos.index', compact('productos', 'empresas', 'sesiones'));
+        return view('activo-fijo-productos.index', compact('productos', 'empresas', 'sesiones', 'sort', 'dir', 'perPage'));
     }
 
     public function show(ActivoFijoProducto $producto)
@@ -78,10 +65,10 @@ class ActivoFijoProductoController extends Controller
 
     public function importForm()
     {
-        $empresaIds = $this->empresaIds();
-        $empresas = $this->scopedEmpresas($empresaIds);
+        $empresaId = $this->selectedEmpresaId();
+        $empresas = Empresa::where('id', $empresaId)->get();
         $sesiones = ActivoFijoInventario::where('eliminado', false)
-            ->when($empresaIds, fn($q) => $q->whereIn('empresa_id', $empresaIds))
+            ->where('empresa_id', $empresaId)
             ->with('empresa', 'sucursal')
             ->orderBy('created_at', 'desc')
             ->get();

@@ -5,36 +5,15 @@ namespace App\Http\Controllers;
 use App\Models\Empresa;
 use App\Models\Producto;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 
 class ProductoController extends Controller
 {
-    private function empresaIds()
-    {
-        $user = Auth::user();
-        return $user->esAdmin() ? null : $user->empresas->pluck('id');
-    }
-
-    private function scopedEmpresas($empresaIds)
-    {
-        return Empresa::where('eliminado', false)
-            ->when($empresaIds, fn($q) => $q->whereIn('id', $empresaIds))
-            ->orderBy('nombre')->get();
-    }
-
     public function index(Request $request)
     {
-        $empresaIds = $this->empresaIds();
+        $empresaId = $this->selectedEmpresaId();
 
-        $query = Producto::where('eliminado', false)->with('empresa');
-
-        if ($empresaIds !== null) {
-            $query->whereIn('empresa_id', $empresaIds);
-        }
-
-        if ($request->filled('empresa_id')) {
-            $query->where('empresa_id', $request->empresa_id);
-        }
+        $query = Producto::where('eliminado', false)->with('empresa')
+            ->where('empresa_id', $empresaId);
 
         if ($request->filled('buscar')) {
             $query->where(function ($q) use ($request) {
@@ -46,14 +25,14 @@ class ProductoController extends Controller
         }
 
         $productos = $query->orderBy('descripcion')->paginate(20)->withQueryString();
-        $empresas = $this->scopedEmpresas($empresaIds);
+        $empresas = Empresa::where('id', $empresaId)->get();
 
         return view('productos.index', compact('productos', 'empresas'));
     }
 
     public function create()
     {
-        $empresas = $this->scopedEmpresas($this->empresaIds());
+        $empresas = Empresa::where('id', $this->selectedEmpresaId())->get();
         return view('productos.create', compact('empresas'));
     }
 
@@ -76,7 +55,7 @@ class ProductoController extends Controller
 
     public function edit(Producto $producto)
     {
-        $empresas = $this->scopedEmpresas($this->empresaIds());
+        $empresas = Empresa::where('id', $this->selectedEmpresaId())->get();
         return view('productos.edit', compact('producto', 'empresas'));
     }
 
@@ -105,7 +84,7 @@ class ProductoController extends Controller
 
     public function importForm()
     {
-        $empresas = $this->scopedEmpresas($this->empresaIds());
+        $empresas = Empresa::where('id', $this->selectedEmpresaId())->get();
         return view('productos.import', compact('empresas'));
     }
 

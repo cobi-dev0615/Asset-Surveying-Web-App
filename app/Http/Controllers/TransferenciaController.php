@@ -11,21 +11,13 @@ use Illuminate\Support\Facades\Auth;
 
 class TransferenciaController extends Controller
 {
-    private function empresaIds()
-    {
-        $user = Auth::user();
-        return $user->esAdmin() ? null : $user->empresas->pluck('id');
-    }
-
     public function nueva()
     {
-        $empresaIds = $this->empresaIds();
+        $empresaId = $this->selectedEmpresaId();
 
-        $empresas = Empresa::where('eliminado', false)
-            ->when($empresaIds, fn($q) => $q->whereIn('id', $empresaIds))
-            ->orderBy('nombre')->get();
+        $empresas = Empresa::where('id', $empresaId)->get();
         $sucursales = Sucursal::where('eliminado', false)
-            ->when($empresaIds, fn($q) => $q->whereIn('empresa_id', $empresaIds))
+            ->where('empresa_id', $empresaId)
             ->orderBy('nombre')->get();
 
         return view('transferencias.nueva', compact('empresas', 'sucursales'));
@@ -55,17 +47,14 @@ class TransferenciaController extends Controller
 
     public function solicitadas(Request $request)
     {
-        $empresaIds = $this->empresaIds();
+        $empresaId = $this->selectedEmpresaId();
 
         $query = ActivoTraspasado::where('eliminado', false)
-            ->with('sucursalOrigen', 'sucursalDestino', 'usuario');
-
-        if ($empresaIds !== null) {
-            $query->where(function ($q) use ($empresaIds) {
-                $q->whereHas('sucursalOrigen', fn($sq) => $sq->whereIn('empresa_id', $empresaIds))
-                  ->orWhereHas('sucursalDestino', fn($sq) => $sq->whereIn('empresa_id', $empresaIds));
+            ->with('sucursalOrigen', 'sucursalDestino', 'usuario')
+            ->where(function ($q) use ($empresaId) {
+                $q->whereHas('sucursalOrigen', fn($sq) => $sq->where('empresa_id', $empresaId))
+                  ->orWhereHas('sucursalDestino', fn($sq) => $sq->where('empresa_id', $empresaId));
             });
-        }
 
         if ($request->filled('buscar')) {
             $query->where('activo', $request->buscar);
@@ -77,7 +66,7 @@ class TransferenciaController extends Controller
 
         $traspasos = $query->orderBy('created_at', 'desc')->paginate(20)->withQueryString();
         $sucursales = Sucursal::where('eliminado', false)
-            ->when($empresaIds, fn($q) => $q->whereIn('empresa_id', $empresaIds))
+            ->where('empresa_id', $empresaId)
             ->orderBy('nombre')->get();
 
         return view('transferencias.solicitadas', compact('traspasos', 'sucursales'));
@@ -85,17 +74,14 @@ class TransferenciaController extends Controller
 
     public function recibidas(Request $request)
     {
-        $empresaIds = $this->empresaIds();
+        $empresaId = $this->selectedEmpresaId();
 
         $query = ActivoTraspasado::where('eliminado', false)
-            ->with('sucursalOrigen', 'sucursalDestino', 'usuario');
-
-        if ($empresaIds !== null) {
-            $query->where(function ($q) use ($empresaIds) {
-                $q->whereHas('sucursalOrigen', fn($sq) => $sq->whereIn('empresa_id', $empresaIds))
-                  ->orWhereHas('sucursalDestino', fn($sq) => $sq->whereIn('empresa_id', $empresaIds));
+            ->with('sucursalOrigen', 'sucursalDestino', 'usuario')
+            ->where(function ($q) use ($empresaId) {
+                $q->whereHas('sucursalOrigen', fn($sq) => $sq->where('empresa_id', $empresaId))
+                  ->orWhereHas('sucursalDestino', fn($sq) => $sq->where('empresa_id', $empresaId));
             });
-        }
 
         if ($request->filled('buscar')) {
             $query->where('activo', $request->buscar);
@@ -107,7 +93,7 @@ class TransferenciaController extends Controller
 
         $traspasos = $query->orderBy('created_at', 'desc')->paginate(20)->withQueryString();
         $sucursales = Sucursal::where('eliminado', false)
-            ->when($empresaIds, fn($q) => $q->whereIn('empresa_id', $empresaIds))
+            ->where('empresa_id', $empresaId)
             ->orderBy('nombre')->get();
 
         return view('transferencias.recibidas', compact('traspasos', 'sucursales'));

@@ -238,6 +238,24 @@
         }
         .topbar-left { display: flex; align-items: center; gap: 1rem; }
         .topbar-left h1 { font-size: 1rem; font-weight: 600; color: var(--text); }
+        .topbar-empresa-badge {
+            display: inline-flex; align-items: center; gap: 0.4rem;
+            padding: 0.3rem 0.7rem; border-radius: 6px;
+            background: var(--primary-light); color: var(--primary-hover);
+            font-size: 0.78rem; font-weight: 500;
+            text-decoration: none; transition: var(--transition);
+            border: 1px solid rgba(119,140,133,0.2);
+        }
+        .topbar-empresa-badge:hover {
+            background: var(--primary); color: #fff;
+            box-shadow: var(--shadow-sm);
+        }
+        .topbar-empresa-badge:hover .topbar-empresa-change { opacity: 1; }
+        .topbar-empresa-badge svg:first-child { width: 15px; height: 15px; flex-shrink: 0; opacity: 0.7; }
+        .topbar-empresa-name { font-weight: 600; }
+        .topbar-empresa-sep { opacity: 0.4; }
+        .topbar-sucursal-name { opacity: 0.85; }
+        .topbar-empresa-change { width: 13px; height: 13px; opacity: 0.4; transition: opacity 0.2s; margin-left: 0.15rem; }
         .topbar-right { display: flex; align-items: center; gap: 0.75rem; }
         .topbar-user {
             position: relative;
@@ -656,6 +674,17 @@
                 <button class="btn btn-ghost sidebar-toggle" id="sidebarToggle" onclick="toggleSidebar()" title="Menú">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="16" y2="12"/><line x1="4" y1="18" x2="12" y2="18"/></svg>
                 </button>
+                @if(session('selected_empresa_nombre'))
+                <a href="{{ route('cambiar-empresa') }}" class="topbar-empresa-badge" title="Cambiar empresa / sucursal">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18M3 7v14m6-14v14m6-14v14m6-14v14M6 3h12l3 4H3l3-4z"/></svg>
+                    <span class="topbar-empresa-name">{{ session('selected_empresa_nombre') }}</span>
+                    @if(session('selected_sucursal_nombre'))
+                        <span class="topbar-empresa-sep">/</span>
+                        <span class="topbar-sucursal-name">{{ session('selected_sucursal_nombre') }}</span>
+                    @endif
+                    <svg class="topbar-empresa-change" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+                </a>
+                @endif
             </div>
             <div class="topbar-right">
                 <button class="btn btn-ghost" id="fullscreenBtn" onclick="toggleFullscreen()" title="Pantalla completa">

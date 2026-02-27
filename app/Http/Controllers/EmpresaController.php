@@ -11,12 +11,9 @@ class EmpresaController extends Controller
 {
     public function index(Request $request)
     {
-        $user = Auth::user();
-        $query = Empresa::where('eliminado', false)->withCount('sucursales', 'users', 'productos');
-
-        if (!$user->esAdmin()) {
-            $query->whereIn('id', $user->empresas->pluck('id'));
-        }
+        $query = Empresa::where('eliminado', false)
+            ->where('id', $this->selectedEmpresaId())
+            ->withCount('sucursales', 'users', 'productos');
 
         if ($request->filled('buscar')) {
             $query->where(function ($q) use ($request) {

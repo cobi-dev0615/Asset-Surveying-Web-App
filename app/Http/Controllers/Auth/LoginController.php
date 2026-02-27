@@ -70,16 +70,7 @@ class LoginController extends Controller
 
         $request->session()->regenerate();
 
-        // Role-based redirect
-        $redirectMap = [
-            'super_admin' => '/dashboard',
-            'supervisor' => '/dashboard',
-            'capturista' => '/dashboard',
-            'supervisor_invitado' => '/transferencias/solicitadas',
-        ];
-
-        $route = $redirectMap[$user->rol->slug] ?? '/dashboard';
-        return redirect()->intended($route);
+        return redirect('/seleccionar-empresa');
     }
 
     public function logout(Request $request)

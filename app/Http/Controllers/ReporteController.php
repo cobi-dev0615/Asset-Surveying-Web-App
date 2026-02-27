@@ -9,7 +9,6 @@ use App\Models\Empresa;
 use App\Models\LogSesionMovil;
 use App\Models\Sucursal;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
@@ -17,33 +16,13 @@ use PhpOffice\PhpSpreadsheet\Style\Fill;
 
 class ReporteController extends Controller
 {
-    private function empresaIds()
-    {
-        $user = Auth::user();
-        return $user->esAdmin() ? null : $user->empresas->pluck('id');
-    }
-
-    private function scopedEmpresas($empresaIds)
-    {
-        return Empresa::where('eliminado', false)
-            ->when($empresaIds, fn($q) => $q->whereIn('id', $empresaIds))
-            ->orderBy('nombre')->get();
-    }
-
     public function conteo(Request $request)
     {
-        $empresaIds = $this->empresaIds();
+        $empresaId = $this->selectedEmpresaId();
 
         $query = ActivoFijoRegistro::where('eliminado', false)
-            ->with('inventario.empresa', 'inventario.sucursal', 'usuario');
-
-        if ($empresaIds !== null) {
-            $query->whereHas('inventario', fn ($q) => $q->whereIn('empresa_id', $empresaIds));
-        }
-
-        if ($request->filled('empresa_id')) {
-            $query->whereHas('inventario', fn ($q) => $q->where('empresa_id', $request->empresa_id));
-        }
+            ->with('inventario.empresa', 'inventario.sucursal', 'usuario')
+            ->whereHas('inventario', fn ($q) => $q->where('empresa_id', $empresaId));
 
         if ($request->filled('sucursal_id')) {
             $query->whereHas('inventario', fn ($q) => $q->where('sucursal_id', $request->sucursal_id));
@@ -54,9 +33,9 @@ class ReporteController extends Controller
         }
 
         $registros = $query->orderBy('created_at', 'desc')->paginate(20)->withQueryString();
-        $empresas = $this->scopedEmpresas($empresaIds);
+        $empresas = Empresa::where('id', $empresaId)->get();
         $sesiones = ActivoFijoInventario::where('eliminado', false)
-            ->when($empresaIds, fn($q) => $q->whereIn('empresa_id', $empresaIds))
+            ->where('empresa_id', $empresaId)
             ->orderBy('id', 'desc')->get();
 
         return view('reportes.conteo', compact('registros', 'empresas', 'sesiones'));
@@ -64,26 +43,19 @@ class ReporteController extends Controller
 
     public function noEncontrados(Request $request)
     {
-        $empresaIds = $this->empresaIds();
+        $empresaId = $this->selectedEmpresaId();
 
-        $query = ActivoNoEncontrado::with('inventario.empresa', 'inventario.sucursal', 'usuario');
-
-        if ($empresaIds !== null) {
-            $query->whereHas('inventario', fn ($q) => $q->whereIn('empresa_id', $empresaIds));
-        }
-
-        if ($request->filled('empresa_id')) {
-            $query->whereHas('inventario', fn ($q) => $q->where('empresa_id', $request->empresa_id));
-        }
+        $query = ActivoNoEncontrado::with('inventario.empresa', 'inventario.sucursal', 'usuario')
+            ->whereHas('inventario', fn ($q) => $q->where('empresa_id', $empresaId));
 
         if ($request->filled('inventario_id')) {
             $query->where('inventario_id', $request->inventario_id);
         }
 
         $registros = $query->orderBy('created_at', 'desc')->paginate(20)->withQueryString();
-        $empresas = $this->scopedEmpresas($empresaIds);
+        $empresas = Empresa::where('id', $empresaId)->get();
         $sesiones = ActivoFijoInventario::where('eliminado', false)
-            ->when($empresaIds, fn($q) => $q->whereIn('empresa_id', $empresaIds))
+            ->where('empresa_id', $empresaId)
             ->orderBy('id', 'desc')->get();
 
         return view('reportes.no-encontrados', compact('registros', 'empresas', 'sesiones'));
@@ -91,46 +63,33 @@ class ReporteController extends Controller
 
     public function global(Request $request)
     {
-        $empresaIds = $this->empresaIds();
+        $empresaId = $this->selectedEmpresaId();
 
         $query = ActivoFijoInventario::where('eliminado', false)
             ->with('empresa', 'sucursal', 'status', 'usuario')
-            ->withCount('registros', 'noEncontrados');
-
-        if ($empresaIds !== null) {
-            $query->whereIn('empresa_id', $empresaIds);
-        }
-
-        if ($request->filled('empresa_id')) {
-            $query->where('empresa_id', $request->empresa_id);
-        }
+            ->withCount('registros', 'noEncontrados')
+            ->where('empresa_id', $empresaId);
 
         if ($request->filled('status_id')) {
             $query->where('status_id', $request->status_id);
         }
 
         $sesiones = $query->orderBy('created_at', 'desc')->paginate(20)->withQueryString();
-        $empresas = $this->scopedEmpresas($empresaIds);
+        $empresas = Empresa::where('id', $empresaId)->get();
 
         // Summary stats (scoped)
-        $statsQuery = ActivoFijoInventario::where('eliminado', false);
-        if ($empresaIds !== null) {
-            $statsQuery->whereIn('empresa_id', $empresaIds);
-        }
+        $statsQuery = ActivoFijoInventario::where('eliminado', false)
+            ->where('empresa_id', $empresaId);
         $totalSesiones = (clone $statsQuery)->count();
         $finalizadas = (clone $statsQuery)->where('finalizado', true)->count();
 
-        $regQuery = ActivoFijoRegistro::where('eliminado', false);
-        if ($empresaIds !== null) {
-            $regQuery->whereHas('inventario', fn ($q) => $q->whereIn('empresa_id', $empresaIds));
-        }
-        $totalRegistros = $regQuery->count();
+        $totalRegistros = ActivoFijoRegistro::where('eliminado', false)
+            ->whereHas('inventario', fn ($q) => $q->where('empresa_id', $empresaId))
+            ->count();
 
-        $noEncQuery = ActivoNoEncontrado::query();
-        if ($empresaIds !== null) {
-            $noEncQuery->whereHas('inventario', fn ($q) => $q->whereIn('empresa_id', $empresaIds));
-        }
-        $totalNoEncontrados = $noEncQuery->count();
+        $totalNoEncontrados = ActivoNoEncontrado::query()
+            ->whereHas('inventario', fn ($q) => $q->where('empresa_id', $empresaId))
+            ->count();
 
         return view('reportes.global', compact(
             'sesiones', 'empresas', 'totalSesiones', 'totalRegistros', 'totalNoEncontrados', 'finalizadas'
@@ -139,22 +98,15 @@ class ReporteController extends Controller
 
     public function acumulado(Request $request)
     {
-        $empresaIds = $this->empresaIds();
-        $empresas = $this->scopedEmpresas($empresaIds);
+        $empresaId = $this->selectedEmpresaId();
+        $empresas = Empresa::where('id', $empresaId)->get();
 
         $query = Empresa::where('eliminado', false)
             ->withCount([
                 'activoFijoInventarios as sesiones_count' => fn ($q) => $q->where('eliminado', false),
                 'activoFijoInventarios as finalizadas_count' => fn ($q) => $q->where('eliminado', false)->where('finalizado', true),
-            ]);
-
-        if ($empresaIds !== null) {
-            $query->whereIn('id', $empresaIds);
-        }
-
-        if ($request->filled('empresa_id')) {
-            $query->where('id', $request->empresa_id);
-        }
+            ])
+            ->where('id', $empresaId);
 
         $resumen = $query->orderBy('nombre')->get();
 
@@ -172,13 +124,10 @@ class ReporteController extends Controller
 
     public function sesionesMovil(Request $request)
     {
-        $empresaIds = $this->empresaIds();
+        $empresaId = $this->selectedEmpresaId();
 
-        $query = LogSesionMovil::with('inventario.empresa', 'inventario.sucursal', 'usuario');
-
-        if ($empresaIds !== null) {
-            $query->whereHas('inventario', fn ($q) => $q->whereIn('empresa_id', $empresaIds));
-        }
+        $query = LogSesionMovil::with('inventario.empresa', 'inventario.sucursal', 'usuario')
+            ->whereHas('inventario', fn ($q) => $q->where('empresa_id', $empresaId));
 
         if ($request->filled('inventario_id')) {
             $query->where('inventario_id', $request->inventario_id);
@@ -190,7 +139,7 @@ class ReporteController extends Controller
 
         $sesiones = $query->orderBy('fecha_hora_entrada', 'desc')->paginate(20)->withQueryString();
         $inventarios = ActivoFijoInventario::where('eliminado', false)
-            ->when($empresaIds, fn($q) => $q->whereIn('empresa_id', $empresaIds))
+            ->where('empresa_id', $empresaId)
             ->with('empresa', 'sucursal')->orderBy('id', 'desc')->get();
 
         return view('reportes.sesiones-movil', compact('sesiones', 'inventarios'));
@@ -213,17 +162,12 @@ class ReporteController extends Controller
 
     public function exportConteo(Request $request)
     {
-        $empresaIds = $this->empresaIds();
+        $empresaId = $this->selectedEmpresaId();
 
         $query = ActivoFijoRegistro::where('eliminado', false)
-            ->with('inventario.empresa', 'inventario.sucursal', 'usuario');
+            ->with('inventario.empresa', 'inventario.sucursal', 'usuario')
+            ->whereHas('inventario', fn ($q) => $q->where('empresa_id', $empresaId));
 
-        if ($empresaIds !== null) {
-            $query->whereHas('inventario', fn ($q) => $q->whereIn('empresa_id', $empresaIds));
-        }
-        if ($request->filled('empresa_id')) {
-            $query->whereHas('inventario', fn ($q) => $q->where('empresa_id', $request->empresa_id));
-        }
         if ($request->filled('sucursal_id')) {
             $query->whereHas('inventario', fn ($q) => $q->where('sucursal_id', $request->sucursal_id));
         }
@@ -261,16 +205,11 @@ class ReporteController extends Controller
 
     public function exportNoEncontrados(Request $request)
     {
-        $empresaIds = $this->empresaIds();
+        $empresaId = $this->selectedEmpresaId();
 
-        $query = ActivoNoEncontrado::with('inventario.empresa', 'inventario.sucursal', 'usuario');
+        $query = ActivoNoEncontrado::with('inventario.empresa', 'inventario.sucursal', 'usuario')
+            ->whereHas('inventario', fn ($q) => $q->where('empresa_id', $empresaId));
 
-        if ($empresaIds !== null) {
-            $query->whereHas('inventario', fn ($q) => $q->whereIn('empresa_id', $empresaIds));
-        }
-        if ($request->filled('empresa_id')) {
-            $query->whereHas('inventario', fn ($q) => $q->where('empresa_id', $request->empresa_id));
-        }
         if ($request->filled('inventario_id')) {
             $query->where('inventario_id', $request->inventario_id);
         }
@@ -304,18 +243,13 @@ class ReporteController extends Controller
 
     public function exportGlobal(Request $request)
     {
-        $empresaIds = $this->empresaIds();
+        $empresaId = $this->selectedEmpresaId();
 
         $query = ActivoFijoInventario::where('eliminado', false)
             ->with('empresa', 'sucursal', 'status', 'usuario')
-            ->withCount('registros', 'noEncontrados');
+            ->withCount('registros', 'noEncontrados')
+            ->where('empresa_id', $empresaId);
 
-        if ($empresaIds !== null) {
-            $query->whereIn('empresa_id', $empresaIds);
-        }
-        if ($request->filled('empresa_id')) {
-            $query->where('empresa_id', $request->empresa_id);
-        }
         if ($request->filled('status_id')) {
             $query->where('status_id', $request->status_id);
         }
@@ -348,20 +282,14 @@ class ReporteController extends Controller
 
     public function exportAcumulado(Request $request)
     {
-        $empresaIds = $this->empresaIds();
+        $empresaId = $this->selectedEmpresaId();
 
         $query = Empresa::where('eliminado', false)
             ->withCount([
                 'activoFijoInventarios as sesiones_count' => fn ($q) => $q->where('eliminado', false),
                 'activoFijoInventarios as finalizadas_count' => fn ($q) => $q->where('eliminado', false)->where('finalizado', true),
-            ]);
-
-        if ($empresaIds !== null) {
-            $query->whereIn('id', $empresaIds);
-        }
-        if ($request->filled('empresa_id')) {
-            $query->where('id', $request->empresa_id);
-        }
+            ])
+            ->where('id', $empresaId);
 
         $resumen = $query->orderBy('nombre')->get();
 
@@ -400,13 +328,11 @@ class ReporteController extends Controller
 
     public function exportSesionesMovil(Request $request)
     {
-        $empresaIds = $this->empresaIds();
+        $empresaId = $this->selectedEmpresaId();
 
-        $query = LogSesionMovil::with('inventario.empresa', 'inventario.sucursal', 'usuario');
+        $query = LogSesionMovil::with('inventario.empresa', 'inventario.sucursal', 'usuario')
+            ->whereHas('inventario', fn ($q) => $q->where('empresa_id', $empresaId));
 
-        if ($empresaIds !== null) {
-            $query->whereHas('inventario', fn ($q) => $q->whereIn('empresa_id', $empresaIds));
-        }
         if ($request->filled('inventario_id')) {
             $query->where('inventario_id', $request->inventario_id);
         }

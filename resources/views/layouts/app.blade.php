@@ -32,6 +32,7 @@
             --info-light: #dce8ff;
 
             --sidebar-width: 260px;
+            --sidebar-collapsed-width: 60px;
             --sidebar-bg: #4d504f;
             --sidebar-hover: rgba(255,255,255,0.08);
             --sidebar-active: rgba(255,255,255,0.15);
@@ -71,7 +72,8 @@
             display: flex;
             flex-direction: column;
             z-index: 100;
-            transition: transform 0.3s ease;
+            transition: width 0.3s ease;
+            overflow: hidden;
         }
 
         .sidebar-brand {
@@ -98,7 +100,7 @@
             letter-spacing: 0.1em; color: rgba(255,255,255,0.35);
         }
 
-        .sidebar-nav { flex: 1; padding: 0.5rem 0; overflow-y: auto; }
+        .sidebar-nav { flex: 1; padding: 0.5rem 0; overflow-y: auto; overflow-x: hidden; }
         .sidebar-nav a {
             display: flex; align-items: center; gap: 0.65rem;
             padding: 0.55rem 1.25rem; margin: 0;
@@ -140,8 +142,90 @@
             background: rgba(0,0,0,0.1);
         }
 
+        /* ===== SIDEBAR TOGGLE ===== */
+        .sidebar-toggle { padding: 0.4rem; border-radius: var(--radius); }
+        .sidebar-toggle:hover { background: var(--bg); }
+
+        body.sidebar-collapsed .sidebar { width: var(--sidebar-collapsed-width); }
+        body.sidebar-collapsed .sidebar-brand { padding: 1rem 0; justify-content: center; }
+        body.sidebar-collapsed .sidebar-brand img { height: 28px; }
+        body.sidebar-collapsed .sidebar-brand-text { display: none; }
+        body.sidebar-collapsed .sidebar-section { display: none; }
+        body.sidebar-collapsed .sidebar-nav a {
+            padding: 0.7rem 0; justify-content: center; border-left: none; position: relative;
+        }
+        body.sidebar-collapsed .sidebar-nav a span,
+        body.sidebar-collapsed .sidebar-nav a .nav-label { display: none; }
+        body.sidebar-collapsed .sidebar-nav a svg { margin: 0; opacity: 0.7; }
+        body.sidebar-collapsed .sidebar-toggle-btn {
+            padding: 0.7rem 0; justify-content: center; border-left: none;
+        }
+        body.sidebar-collapsed .sidebar-toggle-btn .chevron,
+        body.sidebar-collapsed .sidebar-toggle-btn .nav-label { display: none; }
+        body.sidebar-collapsed .sidebar-toggle-btn svg:first-child { margin: 0; }
+        body.sidebar-collapsed .sidebar-collapsible { display: none !important; }
+        body.sidebar-collapsed .sidebar-footer { display: none; }
+        body.sidebar-collapsed .main { margin-left: var(--sidebar-collapsed-width); }
+
+        /* Tooltip on hover for collapsed sidebar (only for standalone links, not menu-group parents) */
+        body.sidebar-collapsed .sidebar-nav a::after {
+            content: attr(data-tooltip);
+            position: absolute; left: 100%; top: 50%; transform: translateY(-50%);
+            background: #333; color: #fff; padding: 0.35rem 0.65rem;
+            border-radius: 4px; font-size: 0.75rem; white-space: nowrap;
+            opacity: 0; pointer-events: none; transition: opacity 0.15s;
+            margin-left: 8px; z-index: 200;
+        }
+        body.sidebar-collapsed .sidebar-nav a:hover::after {
+            opacity: 1;
+        }
+        /* Hide tooltip on sub-links inside flyout (they show their own text) */
+        body.sidebar-collapsed .sidebar-menu-group .sidebar-sub a::after { display: none; }
+
+        /* Flyout submenu for collapsed sidebar (position: fixed to escape overflow:hidden) */
+        body.sidebar-collapsed .sidebar-collapsible.flyout-open {
+            display: block !important;
+            position: fixed;
+            min-width: 200px;
+            background: var(--sidebar-bg);
+            border-radius: 0 6px 6px 0;
+            box-shadow: 4px 4px 12px rgba(0,0,0,0.25);
+            padding: 0.35rem 0;
+            z-index: 300;
+        }
+        /* Flyout header showing the group title */
+        .sidebar-collapsible.flyout-open::before {
+            content: attr(data-title);
+            display: block;
+            padding: 0.5rem 1rem 0.35rem;
+            font-size: 0.68rem; font-weight: 600; text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: rgba(255,255,255,0.4);
+            border-bottom: 1px solid var(--sidebar-border);
+            margin-bottom: 0.25rem;
+        }
+        /* Reset sub-link styles for flyout */
+        .sidebar-collapsible.flyout-open a {
+            padding: 0.45rem 1rem !important;
+            justify-content: flex-start !important;
+            font-size: 0.78rem;
+            color: var(--sidebar-text);
+            white-space: nowrap;
+        }
+        .sidebar-collapsible.flyout-open a:hover {
+            background: var(--sidebar-hover);
+            color: var(--sidebar-text-active);
+        }
+        .sidebar-collapsible.flyout-open a.active {
+            color: var(--sidebar-text-active);
+            background: var(--sidebar-active);
+        }
+        .sidebar-collapsible.flyout-open a::before {
+            display: inline-block !important;
+        }
+
         /* ===== MAIN ===== */
-        .main { margin-left: var(--sidebar-width); min-height: 100vh; }
+        .main { margin-left: var(--sidebar-width); min-height: 100vh; transition: margin-left 0.3s ease; }
 
         .topbar {
             background: var(--surface);
@@ -443,9 +527,9 @@
 
         /* ===== RESPONSIVE ===== */
         @media (max-width: 768px) {
-            .sidebar { transform: translateX(-100%); }
-            .sidebar.open { transform: translateX(0); }
-            .main { margin-left: 0; }
+            .sidebar { width: var(--sidebar-width) !important; transform: translateX(-100%); }
+            body.sidebar-collapsed .sidebar { transform: translateX(-100%); }
+            .main { margin-left: 0 !important; }
             .content { padding: 1rem; }
             .topbar { padding: 0 1rem; }
             .form-row { grid-template-columns: 1fr; }
@@ -469,88 +553,94 @@
         @php $rolSlug = Auth::user()->rol->slug; @endphp
         <nav class="sidebar-nav">
             {{-- Tablero (all authenticated) --}}
-            <a href="/dashboard" class="{{ request()->is('dashboard') ? 'active' : '' }}">
+            <a href="/dashboard" class="{{ request()->is('dashboard') ? 'active' : '' }}" data-tooltip="Tablero">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
-                Tablero
+                <span class="nav-label">Tablero</span>
             </a>
 
             @if(in_array($rolSlug, ['super_admin', 'supervisor']))
             {{-- Activos --}}
             <div class="sidebar-section">Activos</div>
-            <a href="/activo-fijo-productos" class="{{ request()->is('activo-fijo-productos*') ? 'active' : '' }}">
+            <a href="/activo-fijo-productos" class="{{ request()->is('activo-fijo-productos*') ? 'active' : '' }}" data-tooltip="Catálogo de Activos">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
-                Catálogo de Activos
+                <span class="nav-label">Catálogo de Activos</span>
             </a>
-            <a href="/productos" class="{{ request()->is('productos*') ? 'active' : '' }}">
+            <a href="/productos" class="{{ request()->is('productos*') ? 'active' : '' }}" data-tooltip="Productos SSR">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
-                Productos SSR
+                <span class="nav-label">Productos SSR</span>
             </a>
 
             {{-- Reportes --}}
             <div class="sidebar-section">Reportes</div>
-            <button class="sidebar-toggle-btn {{ request()->is('reportes*') ? 'open' : '' }}" onclick="toggleSubmenu(this)">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-                Reportes
-                <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
-            </button>
-            <div class="sidebar-collapsible sidebar-sub {{ request()->is('reportes*') ? 'open' : '' }}">
-                <a href="/reportes/conteo" class="{{ request()->is('reportes/conteo') ? 'active' : '' }}">Activos Encontrados</a>
-                <a href="/reportes/no-encontrados" class="{{ request()->is('reportes/no-encontrados') ? 'active' : '' }}">Activos No Encontrados</a>
-                <a href="/reportes/global" class="{{ request()->is('reportes/global') ? 'active' : '' }}">Reporte Global</a>
-                <a href="/reportes/acumulado" class="{{ request()->is('reportes/acumulado') ? 'active' : '' }}">Reporte Acumulado</a>
-                <a href="/reportes/sesiones-movil" class="{{ request()->is('reportes/sesiones-movil') ? 'active' : '' }}">Sesiones Móvil</a>
+            <div class="sidebar-menu-group">
+                <button class="sidebar-toggle-btn {{ request()->is('reportes*') ? 'open' : '' }}" onclick="toggleSubmenu(this)" data-tooltip="Reportes">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                    <span class="nav-label">Reportes</span>
+                    <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+                </button>
+                <div class="sidebar-collapsible sidebar-sub {{ request()->is('reportes*') ? 'open' : '' }}" data-title="Reportes">
+                    <a href="/reportes/conteo" class="{{ request()->is('reportes/conteo') ? 'active' : '' }}">Activos Encontrados</a>
+                    <a href="/reportes/no-encontrados" class="{{ request()->is('reportes/no-encontrados') ? 'active' : '' }}">Activos No Encontrados</a>
+                    <a href="/reportes/global" class="{{ request()->is('reportes/global') ? 'active' : '' }}">Reporte Global</a>
+                    <a href="/reportes/acumulado" class="{{ request()->is('reportes/acumulado') ? 'active' : '' }}">Reporte Acumulado</a>
+                    <a href="/reportes/sesiones-movil" class="{{ request()->is('reportes/sesiones-movil') ? 'active' : '' }}">Sesiones Móvil</a>
+                </div>
             </div>
             @endif
 
             {{-- Transferencias (all web roles) --}}
             <div class="sidebar-section">Transferencias</div>
-            <button class="sidebar-toggle-btn {{ request()->is('transferencias*') || request()->is('traspasos*') || request()->is('ordenes-entrada*') ? 'open' : '' }}" onclick="toggleSubmenu(this)">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
-                Transferencias
-                <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
-            </button>
-            <div class="sidebar-collapsible sidebar-sub {{ request()->is('transferencias*') || request()->is('traspasos*') || request()->is('ordenes-entrada*') ? 'open' : '' }}">
-                <a href="/ordenes-entrada" class="{{ request()->is('ordenes-entrada*') ? 'active' : '' }}">Órdenes de Entrada</a>
-                <a href="/transferencias/nueva" class="{{ request()->is('transferencias/nueva') ? 'active' : '' }}">Nueva Solicitud</a>
-                <a href="/transferencias/solicitadas" class="{{ request()->is('transferencias/solicitadas') ? 'active' : '' }}">Órdenes Solicitadas</a>
-                <a href="/transferencias/recibidas" class="{{ request()->is('transferencias/recibidas') ? 'active' : '' }}">Órdenes Recibidas</a>
-                @if(in_array($rolSlug, ['super_admin', 'supervisor']))
-                <a href="/traspasos" class="{{ request()->is('traspasos*') ? 'active' : '' }}">Historial de Traspasos</a>
-                @endif
+            <div class="sidebar-menu-group">
+                <button class="sidebar-toggle-btn {{ request()->is('transferencias*') || request()->is('traspasos*') || request()->is('ordenes-entrada*') ? 'open' : '' }}" onclick="toggleSubmenu(this)" data-tooltip="Transferencias">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+                    <span class="nav-label">Transferencias</span>
+                    <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+                </button>
+                <div class="sidebar-collapsible sidebar-sub {{ request()->is('transferencias*') || request()->is('traspasos*') || request()->is('ordenes-entrada*') ? 'open' : '' }}" data-title="Transferencias">
+                    <a href="/ordenes-entrada" class="{{ request()->is('ordenes-entrada*') ? 'active' : '' }}">Órdenes de Entrada</a>
+                    <a href="/transferencias/nueva" class="{{ request()->is('transferencias/nueva') ? 'active' : '' }}">Nueva Solicitud</a>
+                    <a href="/transferencias/solicitadas" class="{{ request()->is('transferencias/solicitadas') ? 'active' : '' }}">Órdenes Solicitadas</a>
+                    <a href="/transferencias/recibidas" class="{{ request()->is('transferencias/recibidas') ? 'active' : '' }}">Órdenes Recibidas</a>
+                    @if(in_array($rolSlug, ['super_admin', 'supervisor']))
+                    <a href="/traspasos" class="{{ request()->is('traspasos*') ? 'active' : '' }}">Historial de Traspasos</a>
+                    @endif
+                </div>
             </div>
 
             @if(in_array($rolSlug, ['super_admin', 'supervisor']))
             {{-- Inventario de Productos --}}
             <div class="sidebar-section">Inventario de Productos</div>
-            <a href="/inventarios" class="{{ request()->is('inventarios*') ? 'active' : '' }}">
+            <a href="/inventarios" class="{{ request()->is('inventarios*') ? 'active' : '' }}" data-tooltip="Sesiones de Inventario">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg>
-                Sesiones de Inventario
+                <span class="nav-label">Sesiones de Inventario</span>
             </a>
 
             {{-- Activo Fijo --}}
             <div class="sidebar-section">Activo Fijo</div>
-            <a href="/activo-fijo" class="{{ request()->is('activo-fijo*') ? 'active' : '' }}">
+            <a href="/activo-fijo" class="{{ request()->is('activo-fijo*') ? 'active' : '' }}" data-tooltip="Sesiones de Activo Fijo">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><line x1="12" y1="12" x2="12" y2="12.01"/></svg>
-                Sesiones de Activo Fijo
+                <span class="nav-label">Sesiones de Activo Fijo</span>
             </a>
 
             {{-- Administración --}}
             <div class="sidebar-section">Administración</div>
-            <button class="sidebar-toggle-btn {{ request()->is('empresas*') || request()->is('sucursales*') ? 'open' : '' }}" onclick="toggleSubmenu(this)">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18M3 7v14m6-14v14m6-14v14m6-14v14M6 3h12l3 4H3l3-4z"/></svg>
-                Empresas
-                <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
-            </button>
-            <div class="sidebar-collapsible sidebar-sub {{ request()->is('empresas*') || request()->is('sucursales*') ? 'open' : '' }}">
-                <a href="/empresas" class="{{ request()->is('empresas*') ? 'active' : '' }}">Catálogo de Empresas</a>
-                <a href="/sucursales" class="{{ request()->is('sucursales*') ? 'active' : '' }}">Catálogo de Sucursales</a>
+            <div class="sidebar-menu-group">
+                <button class="sidebar-toggle-btn {{ request()->is('empresas*') || request()->is('sucursales*') ? 'open' : '' }}" onclick="toggleSubmenu(this)" data-tooltip="Empresas">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18M3 7v14m6-14v14m6-14v14m6-14v14M6 3h12l3 4H3l3-4z"/></svg>
+                    <span class="nav-label">Empresas</span>
+                    <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+                </button>
+                <div class="sidebar-collapsible sidebar-sub {{ request()->is('empresas*') || request()->is('sucursales*') ? 'open' : '' }}" data-title="Empresas">
+                    <a href="/empresas" class="{{ request()->is('empresas*') ? 'active' : '' }}">Catálogo de Empresas</a>
+                    <a href="/sucursales" class="{{ request()->is('sucursales*') ? 'active' : '' }}">Catálogo de Sucursales</a>
+                </div>
             </div>
             @endif
 
             @if($rolSlug === 'super_admin')
-            <a href="/usuarios" class="{{ request()->is('usuarios*') ? 'active' : '' }}">
+            <a href="/usuarios" class="{{ request()->is('usuarios*') ? 'active' : '' }}" data-tooltip="Usuarios">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                Usuarios
+                <span class="nav-label">Usuarios</span>
             </a>
             @endif
         </nav>
@@ -563,10 +653,9 @@
     <div class="main">
         <div class="topbar">
             <div class="topbar-left">
-                <button class="btn btn-ghost" onclick="document.getElementById('sidebar').classList.toggle('open')" style="display:none;" id="menu-toggle">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+                <button class="btn btn-ghost sidebar-toggle" id="sidebarToggle" onclick="toggleSidebar()" title="Menú">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="16" y2="12"/><line x1="4" y1="18" x2="12" y2="18"/></svg>
                 </button>
-                <h1>@yield('title')</h1>
             </div>
             <div class="topbar-right">
                 <button class="btn btn-ghost" id="fullscreenBtn" onclick="toggleFullscreen()" title="Pantalla completa">
@@ -608,12 +697,51 @@
 
     @stack('scripts')
     <script>
-        if (window.innerWidth <= 768) document.getElementById('menu-toggle')?.style.setProperty('display', 'flex');
-        function toggleSubmenu(btn) {
-            btn.classList.toggle('open');
-            const sub = btn.nextElementSibling;
-            if (sub) sub.classList.toggle('open');
+        function toggleSidebar() {
+            document.body.classList.toggle('sidebar-collapsed');
+            localStorage.setItem('sidebarCollapsed', document.body.classList.contains('sidebar-collapsed') ? '1' : '');
         }
+        // Restore sidebar state from localStorage
+        if (localStorage.getItem('sidebarCollapsed') === '1') {
+            document.body.classList.add('sidebar-collapsed');
+        }
+
+        function closeAllFlyouts() {
+            document.querySelectorAll('.sidebar-collapsible.flyout-open').forEach(function(f) {
+                f.classList.remove('flyout-open');
+                f.style.left = '';
+                f.style.top = '';
+            });
+        }
+
+        function toggleSubmenu(btn) {
+            var sub = btn.nextElementSibling;
+            if (!sub) return;
+
+            // Collapsed mode: open as fixed flyout
+            if (document.body.classList.contains('sidebar-collapsed')) {
+                var wasOpen = sub.classList.contains('flyout-open');
+                closeAllFlyouts();
+                if (!wasOpen) {
+                    var rect = btn.getBoundingClientRect();
+                    sub.style.left = rect.right + 'px';
+                    sub.style.top = rect.top + 'px';
+                    sub.classList.add('flyout-open');
+                }
+                return;
+            }
+
+            // Expanded mode: normal toggle
+            btn.classList.toggle('open');
+            sub.classList.toggle('open');
+        }
+
+        // Close flyout on outside click
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.sidebar-menu-group')) {
+                closeAllFlyouts();
+            }
+        });
 
         // Fullscreen toggle
         function toggleFullscreen() {

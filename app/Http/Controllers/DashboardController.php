@@ -133,12 +133,12 @@ class DashboardController extends Controller
 
         return ActivoFijoRegistro::where('inventario_id', $sesionId)
             ->where('eliminado', false)
-            ->select('ubicacion_1', DB::raw('COUNT(*) as cantidad'))
-            ->groupBy('ubicacion_1')
+            ->select('nombre_almacen', DB::raw('COUNT(*) as cantidad'))
+            ->groupBy('nombre_almacen')
             ->orderByDesc('cantidad')
             ->get()
             ->map(fn ($row) => [
-                'area' => $row->ubicacion_1 ?: 'Sin ubicación',
+                'area' => $row->nombre_almacen ?: 'Sin ubicación',
                 'cantidad' => $row->cantidad,
             ])
             ->toArray();
@@ -148,14 +148,21 @@ class DashboardController extends Controller
     {
         if (!$sesionActual) return [];
 
-        return ActivoFijoRegistro::where('inventario_id', $sesionId)
-            ->where('eliminado', false)
-            ->select('categoria', DB::raw('COUNT(*) as cantidad'))
-            ->groupBy('categoria')
+        return ActivoFijoRegistro::where('activo_fijo_registros.inventario_id', $sesionId)
+            ->where('activo_fijo_registros.eliminado', false)
+            ->leftJoin('activo_fijo_productos', function ($join) use ($sesionId) {
+                $join->on('activo_fijo_registros.id_producto', '=', 'activo_fijo_productos.id')
+                     ->where('activo_fijo_productos.inventario_id', $sesionId);
+            })
+            ->select(
+                DB::raw('COALESCE(activo_fijo_productos.categoria_2, activo_fijo_registros.categoria) as cat'),
+                DB::raw('COUNT(*) as cantidad')
+            )
+            ->groupBy('cat')
             ->orderByDesc('cantidad')
             ->get()
             ->map(fn ($row) => [
-                'categoria' => $row->categoria ?: 'Sin categoría',
+                'categoria' => $row->cat ?: 'Sin categoría',
                 'cantidad' => $row->cantidad,
             ])
             ->toArray();

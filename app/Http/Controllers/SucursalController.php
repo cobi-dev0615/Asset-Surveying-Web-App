@@ -13,7 +13,7 @@ class SucursalController extends Controller
     {
         $empresaId = $this->selectedEmpresaId();
 
-        $query = Sucursal::where('eliminado', false)->with('empresa')
+        $query = Sucursal::where('eliminado', false)
             ->where('empresa_id', $empresaId);
 
         if ($request->filled('buscar')) {

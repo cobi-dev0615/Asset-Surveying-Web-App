@@ -10,6 +10,12 @@ class TestDataSeeder extends Seeder
 {
     public function run(): void
     {
+        // Guard: only run on empty databases (prevents conflicts with production data)
+        if (DB::table('empresas')->count() > 0) {
+            $this->command->warn('TestDataSeeder skipped: database already has data. This seeder is for development only.');
+            return;
+        }
+
         // Roles
         DB::table('roles')->insert([
             ['id' => 1, 'nombre' => 'Super Administrador', 'slug' => 'super_admin', 'descripcion' => 'Acceso total', 'created_at' => now(), 'updated_at' => now()],

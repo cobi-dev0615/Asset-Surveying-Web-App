@@ -23,19 +23,12 @@
     <div class="card-body" style="padding:0;">
         <div class="toolbar" style="padding:1rem 1.5rem;">
             <div class="toolbar-left">
-                <form method="GET" style="display:flex; gap:0.5rem; flex:1; flex-wrap:wrap;">
-                    <select name="empresa_id" class="form-control" style="width:auto; min-width:180px;">
-                        <option value="">Todas las empresas</option>
-                        @foreach($empresas as $emp)
-                            <option value="{{ $emp->id }}" {{ request('empresa_id') == $emp->id ? 'selected' : '' }}>{{ $emp->nombre }}</option>
-                        @endforeach
-                    </select>
-                    <div class="search-box" style="flex:1; max-width:300px;">
+                <form method="GET" style="display:flex; gap:0.5rem; flex:1; flex-wrap:wrap; align-items:center;">
+                    <div class="search-box" style="flex:1; max-width:350px;">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                         <input type="text" name="buscar" class="form-control" placeholder="Buscar por código, descripción, marca..." value="{{ request('buscar') }}">
                     </div>
-                    <button type="submit" class="btn btn-outline btn-sm">Filtrar</button>
-                    @if(request()->hasAny(['buscar', 'empresa_id']))
+                    @if(request('buscar'))
                         <a href="{{ route('productos.index') }}" class="btn btn-ghost btn-sm">Limpiar</a>
                     @endif
                 </form>
@@ -47,7 +40,6 @@
                     <tr>
                         <th>Código</th>
                         <th>Descripción</th>
-                        <th>Empresa</th>
                         <th>Marca</th>
                         <th>Categoría</th>
                         <th style="text-align:right;">P. Compra</th>
@@ -61,7 +53,6 @@
                     <tr>
                         <td><span class="badge badge-gray">{{ $producto->codigo_1 }}</span></td>
                         <td style="font-weight:500; max-width:250px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ $producto->descripcion }}</td>
-                        <td>{{ $producto->empresa->nombre ?? '-' }}</td>
                         <td>{{ $producto->marca ?? '-' }}</td>
                         <td>{{ $producto->categoria ?? '-' }}</td>
                         <td style="text-align:right;">${{ number_format($producto->precio_compra, 2) }}</td>
@@ -83,7 +74,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="9" class="table-empty">
+                        <td colspan="8" class="table-empty">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
                             <div>No se encontraron productos</div>
                         </td>

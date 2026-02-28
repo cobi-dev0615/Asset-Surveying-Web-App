@@ -21,19 +21,12 @@
     <div class="card-body" style="padding:0;">
         <div class="toolbar" style="padding:1rem 1.5rem;">
             <div class="toolbar-left">
-                <form method="GET" style="display:flex; gap:0.5rem; flex:1; flex-wrap:wrap;">
-                    <select name="empresa_id" class="form-control" style="width:auto; min-width:180px;">
-                        <option value="">Todas las empresas</option>
-                        @foreach($empresas as $emp)
-                            <option value="{{ $emp->id }}" {{ request('empresa_id') == $emp->id ? 'selected' : '' }}>{{ $emp->nombre }}</option>
-                        @endforeach
-                    </select>
-                    <div class="search-box" style="flex:1; max-width:280px;">
+                <form method="GET" style="display:flex; gap:0.5rem; flex:1; flex-wrap:wrap; align-items:center;">
+                    <div class="search-box" style="flex:1; max-width:350px;">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                        <input type="text" name="buscar" class="form-control" placeholder="Buscar sucursal..." value="{{ request('buscar') }}">
+                        <input type="text" name="buscar" class="form-control" placeholder="Buscar por nombre, código, ciudad..." value="{{ request('buscar') }}">
                     </div>
-                    <button type="submit" class="btn btn-outline btn-sm">Filtrar</button>
-                    @if(request()->hasAny(['buscar', 'empresa_id']))
+                    @if(request('buscar'))
                         <a href="{{ route('sucursales.index') }}" class="btn btn-ghost btn-sm">Limpiar</a>
                     @endif
                 </form>
@@ -45,7 +38,6 @@
                     <tr>
                         <th>Código</th>
                         <th>Nombre</th>
-                        <th>Empresa</th>
                         <th>Ciudad</th>
                         <th>Dirección</th>
                         @if(Auth::user()->esAdmin())<th style="width:120px;">Acciones</th>@endif
@@ -56,7 +48,6 @@
                     <tr>
                         <td><span class="badge badge-gray">{{ $sucursal->codigo }}</span></td>
                         <td style="font-weight:500;">{{ $sucursal->nombre }}</td>
-                        <td>{{ $sucursal->empresa->nombre ?? '-' }}</td>
                         <td>{{ $sucursal->ciudad ?? '-' }}</td>
                         <td style="max-width:250px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ $sucursal->direccion ?? '-' }}</td>
                         @if(Auth::user()->esAdmin())
@@ -77,7 +68,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="6" class="table-empty">
+                        <td colspan="5" class="table-empty">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
                             <div>No se encontraron sucursales</div>
                         </td>

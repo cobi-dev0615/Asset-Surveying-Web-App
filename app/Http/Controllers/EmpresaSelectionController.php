@@ -6,6 +6,7 @@ use App\Models\Empresa;
 use App\Models\Sucursal;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class EmpresaSelectionController extends Controller
 {
@@ -41,6 +42,9 @@ class EmpresaSelectionController extends Controller
             $request->session()->forget(['selected_sucursal_id', 'selected_sucursal_nombre']);
         }
 
+        // Determine which modules have data for this empresa
+        $this->setModuleFlags($request, $empresa->id, $sucursal?->id);
+
         return redirect('/dashboard');
     }
 
@@ -51,8 +55,53 @@ class EmpresaSelectionController extends Controller
             'selected_empresa_nombre',
             'selected_sucursal_id',
             'selected_sucursal_nombre',
+            'has_activo_fijo',
+            'has_productos_ssr',
+            'has_inventarios_ssr',
+            'has_transferencias',
         ]);
 
         return redirect('/seleccionar-empresa');
+    }
+
+    private function setModuleFlags(Request $request, int $empresaId, ?int $sucursalId): void
+    {
+        // Activo Fijo: sessions exist for this empresa
+        $afQuery = DB::table('activo_fijo_inventarios')
+            ->where('empresa_id', $empresaId)
+            ->where('eliminado', false);
+        if ($sucursalId) {
+            $afQuery->where('sucursal_id', $sucursalId);
+        }
+        $hasActivoFijo = $afQuery->exists();
+
+        // Productos SSR: products exist for this empresa
+        $hasProductosSSR = DB::table('productos')
+            ->where('empresa_id', $empresaId)
+            ->where('eliminado', false)
+            ->exists();
+
+        // Inventarios SSR: sessions exist for this empresa
+        $hasInventariosSSR = DB::table('inventarios')
+            ->where('empresa_id', $empresaId)
+            ->where('eliminado', false)
+            ->exists();
+
+        // Transferencias: any transfer orders referencing this empresa's sessions
+        $hasTransferencias = DB::table('ordenes_entrada')
+            ->where('eliminado', false)
+            ->where(function ($q) use ($empresaId) {
+                $q->whereIn('inventario_origen_id', function ($sub) use ($empresaId) {
+                    $sub->select('id')->from('activo_fijo_inventarios')->where('empresa_id', $empresaId);
+                })->orWhereIn('inventario_destino_id', function ($sub) use ($empresaId) {
+                    $sub->select('id')->from('activo_fijo_inventarios')->where('empresa_id', $empresaId);
+                });
+            })
+            ->exists();
+
+        $request->session()->put('has_activo_fijo', $hasActivoFijo);
+        $request->session()->put('has_productos_ssr', $hasProductosSSR);
+        $request->session()->put('has_inventarios_ssr', $hasInventariosSSR);
+        $request->session()->put('has_transferencias', $hasTransferencias);
     }
 }

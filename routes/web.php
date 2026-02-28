@@ -66,13 +66,20 @@ Route::middleware('auth')->group(function () {
 
             // Catálogo de Activos Fijos
             Route::get('/activo-fijo-productos', [ActivoFijoProductoController::class, 'index'])->name('activo-fijo-productos.index');
+            Route::post('/activo-fijo-productos', [ActivoFijoProductoController::class, 'store'])->name('activo-fijo-productos.store');
             Route::get('/activo-fijo-productos/importar', [ActivoFijoProductoController::class, 'importForm'])->name('activo-fijo-productos.import.form');
             Route::post('/activo-fijo-productos/importar', [ActivoFijoProductoController::class, 'import'])->name('activo-fijo-productos.import');
             Route::get('/activo-fijo-productos/{producto}', [ActivoFijoProductoController::class, 'show'])->name('activo-fijo-productos.show');
+            Route::get('/activo-fijo-productos/{producto}/editar', [ActivoFijoProductoController::class, 'edit'])->name('activo-fijo-productos.edit');
+            Route::put('/activo-fijo-productos/{producto}', [ActivoFijoProductoController::class, 'update'])->name('activo-fijo-productos.update');
+            Route::delete('/activo-fijo-productos/{producto}', [ActivoFijoProductoController::class, 'destroy'])->name('activo-fijo-productos.destroy');
 
             // Reportes
             Route::get('/reportes/conteo', [ReporteController::class, 'conteo'])->name('reportes.conteo');
             Route::get('/reportes/conteo/exportar', [ReporteController::class, 'exportConteo'])->name('reportes.conteo.export');
+            Route::get('/reportes/conteo/imprimir', [ReporteController::class, 'conteoImprimir'])->name('reportes.conteo.print');
+            Route::post('/reportes/conteo/eliminar', [ReporteController::class, 'conteoEliminar'])->name('reportes.conteo.delete');
+            Route::match(['get', 'put'], '/reportes/conteo/{registro}/editar', [ReporteController::class, 'conteoEditar'])->name('reportes.conteo.edit');
             Route::get('/reportes/no-encontrados', [ReporteController::class, 'noEncontrados'])->name('reportes.no-encontrados');
             Route::get('/reportes/no-encontrados/exportar', [ReporteController::class, 'exportNoEncontrados'])->name('reportes.no-encontrados.export');
             Route::get('/reportes/global', [ReporteController::class, 'global'])->name('reportes.global');

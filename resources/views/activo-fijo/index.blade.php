@@ -20,12 +20,6 @@
         <div class="toolbar" style="padding:1rem 1.5rem;">
             <div class="toolbar-left">
                 <form method="GET" style="display:flex; gap:0.5rem; flex:1; flex-wrap:wrap;">
-                    <select name="empresa_id" class="form-control" style="width:auto; min-width:180px;">
-                        <option value="">Todas las empresas</option>
-                        @foreach($empresas as $emp)
-                            <option value="{{ $emp->id }}" {{ request('empresa_id') == $emp->id ? 'selected' : '' }}>{{ $emp->nombre }}</option>
-                        @endforeach
-                    </select>
                     <select name="status_id" class="form-control" style="width:auto; min-width:160px;">
                         <option value="">Todos los estados</option>
                         @foreach($statuses as $st)

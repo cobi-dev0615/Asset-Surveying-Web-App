@@ -25,11 +25,18 @@ class DashboardController extends Controller
             ->orderBy('nombre')
             ->get(['id', 'nombre']);
 
-        $sesiones = ActivoFijoInventario::where('eliminado', false)
+        $sucursalId = $this->selectedSucursalId();
+
+        $sesionesQuery = ActivoFijoInventario::where('eliminado', false)
             ->where('empresa_id', $empresaId)
             ->with('empresa', 'sucursal')
-            ->orderBy('created_at', 'desc')
-            ->get();
+            ->orderBy('created_at', 'desc');
+
+        if ($sucursalId) {
+            $sesionesQuery->where('sucursal_id', $sucursalId);
+        }
+
+        $sesiones = $sesionesQuery->get();
 
         $sesionId = $request->input('sesion_id', $sesiones->first()?->id);
         $sesionActual = $sesiones->firstWhere('id', $sesionId);
@@ -51,11 +58,11 @@ class DashboardController extends Controller
     public function sesiones(Request $request)
     {
         $empresaId = $this->selectedEmpresaId();
+        $sucursalId = $request->sucursal_id ?: $this->selectedSucursalId();
 
         $query = ActivoFijoInventario::where('eliminado', false)
             ->where('empresa_id', $empresaId)
-            ->when($request->empresa_id, fn ($q, $v) => $q->where('empresa_id', $v))
-            ->when($request->sucursal_id, fn ($q, $v) => $q->where('sucursal_id', $v))
+            ->when($sucursalId, fn ($q, $v) => $q->where('sucursal_id', $v))
             ->with('empresa:id,nombre', 'sucursal:id,nombre,codigo')
             ->orderBy('created_at', 'desc')
             ->get(['id', 'empresa_id', 'sucursal_id', 'nombre', 'created_at']);

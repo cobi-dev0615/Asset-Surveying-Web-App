@@ -15,9 +15,14 @@ class ActivoFijoController extends Controller
     public function index(Request $request)
     {
         $empresaId = $this->selectedEmpresaId();
+        $sucursalId = $this->selectedSucursalId();
 
         $query = ActivoFijoInventario::where('eliminado', false)->with('empresa', 'sucursal', 'status', 'usuario')
             ->where('empresa_id', $empresaId);
+
+        if ($sucursalId) {
+            $query->where('sucursal_id', $sucursalId);
+        }
 
         if ($request->filled('status_id')) {
             $query->where('status_id', $request->status_id);
@@ -28,10 +33,9 @@ class ActivoFijoController extends Controller
             ->paginate(15)
             ->withQueryString();
 
-        $empresas = Empresa::where('id', $empresaId)->get();
         $statuses = InventarioStatus::all();
 
-        return view('activo-fijo.index', compact('sesiones', 'empresas', 'statuses'));
+        return view('activo-fijo.index', compact('sesiones', 'statuses'));
     }
 
     public function create()

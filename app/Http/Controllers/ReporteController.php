@@ -19,80 +19,128 @@ class ReporteController extends Controller
     public function conteo(Request $request)
     {
         $empresaId = $this->selectedEmpresaId();
+        $sucursalId = $this->selectedSucursalId();
 
-        $query = ActivoFijoRegistro::where('eliminado', false)
-            ->with('inventario.empresa', 'inventario.sucursal', 'usuario')
-            ->whereHas('inventario', fn ($q) => $q->where('empresa_id', $empresaId));
-
-        if ($request->filled('sucursal_id')) {
-            $query->whereHas('inventario', fn ($q) => $q->where('sucursal_id', $request->sucursal_id));
-        }
+        $query = ActivoFijoRegistro::where('activo_fijo_registros.eliminado', false)
+            ->with('inventario.empresa', 'inventario.sucursal', 'usuario', 'producto')
+            ->whereHas('inventario', function ($q) use ($empresaId, $sucursalId) {
+                $q->where('empresa_id', $empresaId);
+                if ($sucursalId) $q->where('sucursal_id', $sucursalId);
+            });
 
         if ($request->filled('inventario_id')) {
             $query->where('inventario_id', $request->inventario_id);
         }
 
-        $registros = $query->orderBy('created_at', 'desc')->paginate(20)->withQueryString();
-        $empresas = Empresa::where('id', $empresaId)->get();
+        if ($request->filled('buscar')) {
+            $buscar = $request->buscar;
+            $query->where(function ($q) use ($buscar) {
+                $q->where('codigo_1', 'like', "%{$buscar}%")
+                  ->orWhere('codigo_2', 'like', "%{$buscar}%")
+                  ->orWhere('codigo_3', 'like', "%{$buscar}%")
+                  ->orWhere('tag_rfid', 'like', "%{$buscar}%")
+                  ->orWhere('n_serie', 'like', "%{$buscar}%")
+                  ->orWhere('n_serie_nuevo', 'like', "%{$buscar}%")
+                  ->orWhere('activo_fijo_registros.descripcion', 'like', "%{$buscar}%")
+                  ->orWhere('activo_fijo_registros.categoria', 'like', "%{$buscar}%")
+                  ->orWhere('nombre_almacen', 'like', "%{$buscar}%")
+                  ->orWhere('observaciones', 'like', "%{$buscar}%");
+            });
+        }
+
+        // Duplicate filter: show only assets scanned more than once
+        if ($request->filled('duplicados') && $request->duplicados === '1') {
+            $query->whereIn('codigo_1', function ($sub) use ($empresaId, $sucursalId) {
+                $sub->select('codigo_1')
+                    ->from('activo_fijo_registros')
+                    ->where('eliminado', false)
+                    ->whereIn('inventario_id', function ($inv) use ($empresaId, $sucursalId) {
+                        $inv->select('id')->from('activo_fijo_inventarios')
+                            ->where('empresa_id', $empresaId);
+                        if ($sucursalId) $inv->where('sucursal_id', $sucursalId);
+                    })
+                    ->groupBy('codigo_1')
+                    ->havingRaw('COUNT(*) > 1');
+            });
+        }
+
+        // Sorting
+        $sortable = ['codigo_1', 'n_serie', 'n_serie_nuevo', 'codigo_2', 'codigo_3', 'tag_rfid', 'categoria', 'descripcion', 'nombre_almacen', 'ubicacion_1', 'created_at'];
+        $sort = in_array($request->sort, $sortable) ? $request->sort : 'created_at';
+        $dir = $request->dir === 'asc' ? 'asc' : 'desc';
+        $perPage = in_array((int) $request->per_page, [10, 25, 50, 100]) ? (int) $request->per_page : 50;
+
+        $registros = $query->orderBy($sort, $dir)->paginate($perPage)->withQueryString();
+
         $sesiones = ActivoFijoInventario::where('eliminado', false)
             ->where('empresa_id', $empresaId)
+            ->when($sucursalId, fn ($q) => $q->where('sucursal_id', $sucursalId))
             ->orderBy('id', 'desc')->get();
 
-        return view('reportes.conteo', compact('registros', 'empresas', 'sesiones'));
+        return view('reportes.conteo', compact('registros', 'sesiones', 'sort', 'dir', 'perPage'));
     }
 
     public function noEncontrados(Request $request)
     {
         $empresaId = $this->selectedEmpresaId();
+        $sucursalId = $this->selectedSucursalId();
 
         $query = ActivoNoEncontrado::with('inventario.empresa', 'inventario.sucursal', 'usuario')
-            ->whereHas('inventario', fn ($q) => $q->where('empresa_id', $empresaId));
+            ->whereHas('inventario', function ($q) use ($empresaId, $sucursalId) {
+                $q->where('empresa_id', $empresaId);
+                if ($sucursalId) $q->where('sucursal_id', $sucursalId);
+            });
 
         if ($request->filled('inventario_id')) {
             $query->where('inventario_id', $request->inventario_id);
         }
 
         $registros = $query->orderBy('created_at', 'desc')->paginate(20)->withQueryString();
-        $empresas = Empresa::where('id', $empresaId)->get();
         $sesiones = ActivoFijoInventario::where('eliminado', false)
             ->where('empresa_id', $empresaId)
+            ->when($sucursalId, fn ($q) => $q->where('sucursal_id', $sucursalId))
             ->orderBy('id', 'desc')->get();
 
-        return view('reportes.no-encontrados', compact('registros', 'empresas', 'sesiones'));
+        return view('reportes.no-encontrados', compact('registros', 'sesiones'));
     }
 
     public function global(Request $request)
     {
         $empresaId = $this->selectedEmpresaId();
+        $sucursalId = $this->selectedSucursalId();
 
         $query = ActivoFijoInventario::where('eliminado', false)
             ->with('empresa', 'sucursal', 'status', 'usuario')
             ->withCount('registros', 'noEncontrados')
-            ->where('empresa_id', $empresaId);
+            ->where('empresa_id', $empresaId)
+            ->when($sucursalId, fn ($q) => $q->where('sucursal_id', $sucursalId));
 
         if ($request->filled('status_id')) {
             $query->where('status_id', $request->status_id);
         }
 
         $sesiones = $query->orderBy('created_at', 'desc')->paginate(20)->withQueryString();
-        $empresas = Empresa::where('id', $empresaId)->get();
 
-        // Summary stats (scoped)
+        // Summary stats (scoped by empresa + sucursal)
         $statsQuery = ActivoFijoInventario::where('eliminado', false)
-            ->where('empresa_id', $empresaId);
+            ->where('empresa_id', $empresaId)
+            ->when($sucursalId, fn ($q) => $q->where('sucursal_id', $sucursalId));
         $totalSesiones = (clone $statsQuery)->count();
         $finalizadas = (clone $statsQuery)->where('finalizado', true)->count();
 
+        $invScope = function ($q) use ($empresaId, $sucursalId) {
+            $q->where('empresa_id', $empresaId);
+            if ($sucursalId) $q->where('sucursal_id', $sucursalId);
+        };
+
         $totalRegistros = ActivoFijoRegistro::where('eliminado', false)
-            ->whereHas('inventario', fn ($q) => $q->where('empresa_id', $empresaId))
-            ->count();
+            ->whereHas('inventario', $invScope)->count();
 
         $totalNoEncontrados = ActivoNoEncontrado::query()
-            ->whereHas('inventario', fn ($q) => $q->where('empresa_id', $empresaId))
-            ->count();
+            ->whereHas('inventario', $invScope)->count();
 
         return view('reportes.global', compact(
-            'sesiones', 'empresas', 'totalSesiones', 'totalRegistros', 'totalNoEncontrados', 'finalizadas'
+            'sesiones', 'totalSesiones', 'totalRegistros', 'totalNoEncontrados', 'finalizadas'
         ));
     }
 
@@ -125,9 +173,13 @@ class ReporteController extends Controller
     public function sesionesMovil(Request $request)
     {
         $empresaId = $this->selectedEmpresaId();
+        $sucursalId = $this->selectedSucursalId();
 
         $query = LogSesionMovil::with('inventario.empresa', 'inventario.sucursal', 'usuario')
-            ->whereHas('inventario', fn ($q) => $q->where('empresa_id', $empresaId));
+            ->whereHas('inventario', function ($q) use ($empresaId, $sucursalId) {
+                $q->where('empresa_id', $empresaId);
+                if ($sucursalId) $q->where('sucursal_id', $sucursalId);
+            });
 
         if ($request->filled('inventario_id')) {
             $query->where('inventario_id', $request->inventario_id);
@@ -140,6 +192,7 @@ class ReporteController extends Controller
         $sesiones = $query->orderBy('fecha_hora_entrada', 'desc')->paginate(20)->withQueryString();
         $inventarios = ActivoFijoInventario::where('eliminado', false)
             ->where('empresa_id', $empresaId)
+            ->when($sucursalId, fn ($q) => $q->where('sucursal_id', $sucursalId))
             ->with('empresa', 'sucursal')->orderBy('id', 'desc')->get();
 
         return view('reportes.sesiones-movil', compact('sesiones', 'inventarios'));
@@ -160,55 +213,172 @@ class ReporteController extends Controller
         }
     }
 
-    public function exportConteo(Request $request)
+    private function buildConteoQuery(Request $request)
     {
         $empresaId = $this->selectedEmpresaId();
+        $sucursalId = $this->selectedSucursalId();
 
-        $query = ActivoFijoRegistro::where('eliminado', false)
-            ->with('inventario.empresa', 'inventario.sucursal', 'usuario')
-            ->whereHas('inventario', fn ($q) => $q->where('empresa_id', $empresaId));
+        $query = ActivoFijoRegistro::where('activo_fijo_registros.eliminado', false)
+            ->with('inventario.empresa', 'inventario.sucursal', 'usuario', 'producto')
+            ->whereHas('inventario', function ($q) use ($empresaId, $sucursalId) {
+                $q->where('empresa_id', $empresaId);
+                if ($sucursalId) $q->where('sucursal_id', $sucursalId);
+            });
 
-        if ($request->filled('sucursal_id')) {
-            $query->whereHas('inventario', fn ($q) => $q->where('sucursal_id', $request->sucursal_id));
-        }
         if ($request->filled('inventario_id')) {
             $query->where('inventario_id', $request->inventario_id);
         }
 
+        if ($request->filled('buscar')) {
+            $buscar = $request->buscar;
+            $query->where(function ($q) use ($buscar) {
+                $q->where('codigo_1', 'like', "%{$buscar}%")
+                  ->orWhere('codigo_2', 'like', "%{$buscar}%")
+                  ->orWhere('activo_fijo_registros.descripcion', 'like', "%{$buscar}%")
+                  ->orWhere('n_serie', 'like', "%{$buscar}%")
+                  ->orWhere('activo_fijo_registros.categoria', 'like', "%{$buscar}%");
+            });
+        }
+
+        if ($request->filled('duplicados') && $request->duplicados === '1') {
+            $query->whereIn('codigo_1', function ($sub) use ($empresaId, $sucursalId) {
+                $sub->select('codigo_1')
+                    ->from('activo_fijo_registros')
+                    ->where('eliminado', false)
+                    ->whereIn('inventario_id', function ($inv) use ($empresaId, $sucursalId) {
+                        $inv->select('id')->from('activo_fijo_inventarios')
+                            ->where('empresa_id', $empresaId);
+                        if ($sucursalId) $inv->where('sucursal_id', $sucursalId);
+                    })
+                    ->groupBy('codigo_1')
+                    ->havingRaw('COUNT(*) > 1');
+            });
+        }
+
+        return $query;
+    }
+
+    private function getRegStatus($reg): string
+    {
+        if ($reg->forzado) return 'AGREGADO';
+        if ($reg->traspasado) return 'TRASPASADO';
+        if ($reg->solicitado) return 'SOLICITADO';
+        return 'ENCONTRADO';
+    }
+
+    public function exportConteo(Request $request)
+    {
+        $conImagenes = $request->boolean('con_imagenes');
+        $query = $this->buildConteoQuery($request);
+
         $spreadsheet = new Spreadsheet();
         $sheet = $spreadsheet->getActiveSheet()->setTitle('Conteo');
-        $headers = ['ID', 'Sesión', 'Empresa', 'Sucursal', 'Código', 'Descripción', 'Categoría', 'Ubicación', 'Usuario', 'Fecha'];
+
+        $headers = [
+            'Número de Activo', 'Número de Serie', 'Serie Revisado',
+            'Número de Tag', 'Tag Nuevo', 'Tag RFID',
+            'Categoría', 'Descripción de Activo', 'Marca', 'Unidades',
+            'Departamento/Área', 'Estatus', 'Comentarios',
+            'Usuario', 'Fecha Hora', 'Ubicación',
+        ];
+        if ($conImagenes) $headers[] = 'Imágenes';
+
         $sheet->fromArray($headers, null, 'A1');
         $this->styleHeaders($sheet, count($headers));
 
         $row = 2;
-        $query->orderBy('created_at', 'desc')->chunk(1000, function ($registros) use ($sheet, &$row) {
+        $query->orderBy('created_at', 'desc')->chunk(500, function ($registros) use ($sheet, &$row, $conImagenes) {
             foreach ($registros as $reg) {
-                $sheet->fromArray([
-                    $reg->id,
-                    $reg->inventario_id,
-                    $reg->inventario->empresa->nombre ?? '',
-                    $reg->inventario->sucursal->nombre ?? '',
-                    $reg->codigo_1,
-                    $reg->descripcion,
-                    $reg->categoria,
-                    $reg->ubicacion_1,
+                $data = [
+                    $reg->codigo_1 ?? '',
+                    $reg->n_serie ?? '',
+                    $reg->n_serie_nuevo ?? '',
+                    $reg->codigo_2 ?? '',
+                    $reg->codigo_3 ?? '',
+                    $reg->tag_rfid ?? '',
+                    $reg->categoria ?? ($reg->producto->categoria_2 ?? ''),
+                    $reg->descripcion ?? ($reg->producto->descripcion ?? ''),
+                    $reg->producto->marca ?? '',
+                    $reg->producto->cantidad_teorica ?? 1,
+                    $reg->nombre_almacen ?? '',
+                    $this->getRegStatus($reg),
+                    $reg->observaciones ?? '',
                     $reg->usuario->nombres ?? '',
-                    $reg->created_at?->format('d/m/Y H:i'),
-                ], null, "A{$row}");
+                    $reg->created_at?->format('d/m/Y H:i:s'),
+                    $reg->ubicacion_1 ?? '',
+                ];
+                $sheet->fromArray($data, null, "A{$row}");
+
+                if ($conImagenes && $reg->imagen1) {
+                    $imgPath = storage_path("app/public/fotos/activos/{$reg->imagen1}");
+                    if (file_exists($imgPath)) {
+                        try {
+                            $drawing = new \PhpOffice\PhpSpreadsheet\Worksheet\Drawing();
+                            $drawing->setPath($imgPath);
+                            $drawing->setHeight(60);
+                            $drawing->setCoordinates(chr(64 + count($data) + 1) . $row);
+                            $drawing->setWorksheet($sheet);
+                            $sheet->getRowDimension($row)->setRowHeight(50);
+                        } catch (\Exception $e) {
+                            // Skip images that fail to load
+                        }
+                    }
+                }
+
                 $row++;
             }
         });
 
-        return $this->downloadSpreadsheet($spreadsheet, 'reporte_conteo');
+        $suffix = $conImagenes ? '_con_imagenes' : '_sin_imagenes';
+        return $this->downloadSpreadsheet($spreadsheet, 'reporte_conteo' . $suffix);
+    }
+
+    public function conteoImprimir(Request $request)
+    {
+        $query = $this->buildConteoQuery($request);
+        $conImagenes = $request->boolean('con_imagenes');
+        $registros = $query->orderBy('created_at', 'desc')->get();
+
+        return view('reportes.conteo-print', compact('registros', 'conImagenes'));
+    }
+
+    public function conteoEliminar(Request $request)
+    {
+        $ids = $request->input('ids', []);
+        if (empty($ids)) {
+            return back()->with('error', 'No se seleccionaron registros.');
+        }
+
+        ActivoFijoRegistro::whereIn('id', $ids)->update(['eliminado' => true]);
+
+        return back()->with('success', count($ids) . ' registro(s) eliminado(s) exitosamente.');
+    }
+
+    public function conteoEditar(Request $request, ActivoFijoRegistro $registro)
+    {
+        if ($request->isMethod('get')) {
+            return response()->json($registro);
+        }
+
+        $registro->update($request->only([
+            'codigo_1', 'codigo_2', 'codigo_3', 'tag_rfid',
+            'n_serie', 'n_serie_nuevo', 'categoria', 'descripcion',
+            'nombre_almacen', 'ubicacion_1', 'observaciones',
+        ]));
+
+        return back()->with('success', 'Registro actualizado exitosamente.');
     }
 
     public function exportNoEncontrados(Request $request)
     {
         $empresaId = $this->selectedEmpresaId();
+        $sucursalId = $this->selectedSucursalId();
 
         $query = ActivoNoEncontrado::with('inventario.empresa', 'inventario.sucursal', 'usuario')
-            ->whereHas('inventario', fn ($q) => $q->where('empresa_id', $empresaId));
+            ->whereHas('inventario', function ($q) use ($empresaId, $sucursalId) {
+                $q->where('empresa_id', $empresaId);
+                if ($sucursalId) $q->where('sucursal_id', $sucursalId);
+            });
 
         if ($request->filled('inventario_id')) {
             $query->where('inventario_id', $request->inventario_id);
@@ -244,11 +414,13 @@ class ReporteController extends Controller
     public function exportGlobal(Request $request)
     {
         $empresaId = $this->selectedEmpresaId();
+        $sucursalId = $this->selectedSucursalId();
 
         $query = ActivoFijoInventario::where('eliminado', false)
             ->with('empresa', 'sucursal', 'status', 'usuario')
             ->withCount('registros', 'noEncontrados')
-            ->where('empresa_id', $empresaId);
+            ->where('empresa_id', $empresaId)
+            ->when($sucursalId, fn ($q) => $q->where('sucursal_id', $sucursalId));
 
         if ($request->filled('status_id')) {
             $query->where('status_id', $request->status_id);
@@ -329,9 +501,13 @@ class ReporteController extends Controller
     public function exportSesionesMovil(Request $request)
     {
         $empresaId = $this->selectedEmpresaId();
+        $sucursalId = $this->selectedSucursalId();
 
         $query = LogSesionMovil::with('inventario.empresa', 'inventario.sucursal', 'usuario')
-            ->whereHas('inventario', fn ($q) => $q->where('empresa_id', $empresaId));
+            ->whereHas('inventario', function ($q) use ($empresaId, $sucursalId) {
+                $q->where('empresa_id', $empresaId);
+                if ($sucursalId) $q->where('sucursal_id', $sucursalId);
+            });
 
         if ($request->filled('inventario_id')) {
             $query->where('inventario_id', $request->inventario_id);

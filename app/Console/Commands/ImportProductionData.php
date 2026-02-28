@@ -42,6 +42,7 @@ class ImportProductionData extends Command
 
         $this->clearData();
         $this->seedRoles();
+        $this->seedStatuses();
         $this->importEmpresas();
         $sucursalMap = $this->extractSucursales();
         $this->importUsers();
@@ -67,9 +68,9 @@ class ImportProductionData extends Command
 
         $tables = [
             'activos_no_encontrados', 'ordenes_entrada_detalle', 'ordenes_entrada',
-            'log_sesiones_movil', 'activo_fijo_registros', 'activo_fijo_productos',
-            'activo_fijo_inventarios', 'empresa_user', 'users', 'sucursales',
-            'empresas', 'roles',
+            'ordenes_entrada_estatus', 'log_sesiones_movil', 'activo_fijo_registros',
+            'activo_fijo_productos', 'activo_fijo_inventarios', 'inventarios_status',
+            'empresa_user', 'users', 'sucursales', 'empresas', 'roles',
         ];
 
         foreach ($tables as $table) {
@@ -89,6 +90,24 @@ class ImportProductionData extends Command
             ['id' => 4, 'nombre' => 'Supervisor Invitado', 'slug' => 'supervisor_invitado', 'descripcion' => 'Supervisor que puede realizar traspasos', 'created_at' => now(), 'updated_at' => now()],
         ]);
         $this->info('  4 roles seeded.');
+    }
+
+    private function seedStatuses(): void
+    {
+        $this->info('Seeding inventarios_status & ordenes_entrada_estatus...');
+        DB::table('inventarios_status')->insert([
+            ['id' => 1, 'status' => 'PENDIENTE POR INICIAR'],
+            ['id' => 2, 'status' => 'INICIADO'],
+            ['id' => 3, 'status' => 'FINALIZADO'],
+        ]);
+        DB::table('ordenes_entrada_estatus')->insert([
+            ['id' => 1, 'nombre_estatus' => 'Pendiente'],
+            ['id' => 2, 'nombre_estatus' => 'En proceso'],
+            ['id' => 3, 'nombre_estatus' => 'Rechazado'],
+            ['id' => 4, 'nombre_estatus' => 'Surtido'],
+            ['id' => 5, 'nombre_estatus' => 'Cancelado'],
+        ]);
+        $this->info('  3 inventory statuses + 5 order statuses seeded.');
     }
 
     private function importEmpresas(): void

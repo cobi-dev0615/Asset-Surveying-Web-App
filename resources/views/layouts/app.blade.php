@@ -577,17 +577,24 @@
             </a>
 
             @if(in_array($rolSlug, ['super_admin', 'supervisor']))
+            @if(session('has_activo_fijo') || session('has_productos_ssr'))
             {{-- Activos --}}
             <div class="sidebar-section">Activos</div>
+            @if(session('has_activo_fijo'))
             <a href="/activo-fijo-productos" class="{{ request()->is('activo-fijo-productos*') ? 'active' : '' }}" data-tooltip="Catálogo de Activos">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
                 <span class="nav-label">Catálogo de Activos</span>
             </a>
+            @endif
+            @if(session('has_productos_ssr'))
             <a href="/productos" class="{{ request()->is('productos*') ? 'active' : '' }}" data-tooltip="Productos SSR">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
                 <span class="nav-label">Productos SSR</span>
             </a>
+            @endif
+            @endif
 
+            @if(session('has_activo_fijo'))
             {{-- Reportes --}}
             <div class="sidebar-section">Reportes</div>
             <div class="sidebar-menu-group">
@@ -605,8 +612,10 @@
                 </div>
             </div>
             @endif
+            @endif
 
-            {{-- Transferencias (all web roles) --}}
+            @if(session('has_transferencias'))
+            {{-- Transferencias --}}
             <div class="sidebar-section">Transferencias</div>
             <div class="sidebar-menu-group">
                 <button class="sidebar-toggle-btn {{ request()->is('transferencias*') || request()->is('traspasos*') || request()->is('ordenes-entrada*') ? 'open' : '' }}" onclick="toggleSubmenu(this)" data-tooltip="Transferencias">
@@ -624,21 +633,26 @@
                     @endif
                 </div>
             </div>
+            @endif
 
             @if(in_array($rolSlug, ['super_admin', 'supervisor']))
+            @if(session('has_inventarios_ssr'))
             {{-- Inventario de Productos --}}
             <div class="sidebar-section">Inventario de Productos</div>
             <a href="/inventarios" class="{{ request()->is('inventarios*') ? 'active' : '' }}" data-tooltip="Sesiones de Inventario">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg>
                 <span class="nav-label">Sesiones de Inventario</span>
             </a>
+            @endif
 
+            @if(session('has_activo_fijo'))
             {{-- Activo Fijo --}}
             <div class="sidebar-section">Activo Fijo</div>
             <a href="/activo-fijo" class="{{ request()->is('activo-fijo*') ? 'active' : '' }}" data-tooltip="Sesiones de Activo Fijo">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><line x1="12" y1="12" x2="12" y2="12.01"/></svg>
                 <span class="nav-label">Sesiones de Activo Fijo</span>
             </a>
+            @endif
 
             {{-- Administración --}}
             <div class="sidebar-section">Administración</div>

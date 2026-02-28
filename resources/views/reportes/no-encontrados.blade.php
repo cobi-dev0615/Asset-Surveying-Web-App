@@ -14,12 +14,6 @@
         <div class="toolbar" style="padding:1rem 1.5rem;">
             <div class="toolbar-left">
                 <form method="GET" style="display:flex; gap:0.5rem; flex:1; flex-wrap:wrap;">
-                    <select name="empresa_id" class="form-control" style="width:auto; min-width:180px;">
-                        <option value="">Todas las empresas</option>
-                        @foreach($empresas as $emp)
-                            <option value="{{ $emp->id }}" {{ request('empresa_id') == $emp->id ? 'selected' : '' }}>{{ $emp->nombre }}</option>
-                        @endforeach
-                    </select>
                     <select name="inventario_id" class="form-control" style="width:auto; min-width:180px;">
                         <option value="">Todas las sesiones</option>
                         @foreach($sesiones as $ses)
@@ -27,7 +21,7 @@
                         @endforeach
                     </select>
                     <button type="submit" class="btn btn-outline btn-sm">Filtrar</button>
-                    @if(request()->hasAny(['empresa_id', 'inventario_id']))
+                    @if(request()->hasAny(['inventario_id']))
                         <a href="{{ route('reportes.no-encontrados') }}" class="btn btn-ghost btn-sm">Limpiar</a>
                     @endif
                 </form>

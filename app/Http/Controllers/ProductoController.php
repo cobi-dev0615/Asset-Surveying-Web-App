@@ -25,9 +25,8 @@ class ProductoController extends Controller
         }
 
         $productos = $query->orderBy('descripcion')->paginate(20)->withQueryString();
-        $empresas = Empresa::where('id', $empresaId)->get();
 
-        return view('productos.index', compact('productos', 'empresas'));
+        return view('productos.index', compact('productos'));
     }
 
     public function create()

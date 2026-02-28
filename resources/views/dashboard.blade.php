@@ -6,21 +6,8 @@
     <h1 style="font-size:1.15rem; font-weight:400; color:var(--text);" id="saludo"></h1>
 </div>
 
-{{-- Session selector button --}}
+{{-- Session selector (hidden input for JS) --}}
 <input type="hidden" id="sesionSelect" value="{{ $sesionId }}">
-<div style="margin-bottom:1.25rem; display:flex; align-items:center; gap:0.75rem;">
-    <button type="button" class="btn btn-primary" onclick="openSesionModal()" style="display:inline-flex; align-items:center; gap:0.5rem;">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-        @if($sesionActual)
-            {{ $sesionActual->empresa->nombre ?? '' }} / {{ $sesionActual->sucursal->nombre ?? '' }}
-        @else
-            Seleccionar inventario
-        @endif
-    </button>
-    @if($sesionActual)
-        <span style="font-size:0.78rem; color:var(--text-secondary);">Sesión #{{ $sesionActual->id }}</span>
-    @endif
-</div>
 
 {{-- ══════════════════════════════════════════════════════════════
      MODAL: Selección de Inventario
@@ -237,7 +224,7 @@
             <canvas id="chartAvanceCategoria"></canvas>
         </div>
         {{-- Category Table --}}
-        <div class="table-wrapper">
+        <div class="table-wrapper" style="max-height:420px; overflow-y:auto;">
             @php $totalCat = collect($avancePorCategoria)->sum('cantidad'); @endphp
             <table id="tablaAvanceCategoria" class="dashboard-table">
                 <thead>
@@ -766,6 +753,7 @@ document.addEventListener('DOMContentLoaded', function() {
     font-size: 0.72rem; font-weight: 600; letter-spacing: 0.03em;
     color: var(--text-secondary); border-bottom: 2px solid #dee2e6;
     padding: 0.5rem 0.6rem; white-space: nowrap;
+    position: sticky; top: 0; z-index: 1; background: #fff;
 }
 .dashboard-table tbody td {
     padding: 0.45rem 0.6rem; font-size: 0.82rem; border-bottom: 1px solid #f0f0f0;
@@ -775,6 +763,7 @@ document.addEventListener('DOMContentLoaded', function() {
 .dashboard-table .total-row td {
     border-top: 2px solid #dee2e6; border-bottom: none;
     padding: 0.55rem 0.6rem; background: #f8f9fa;
+    position: sticky; bottom: 0; z-index: 1;
 }
 
 /* Color dot indicator */

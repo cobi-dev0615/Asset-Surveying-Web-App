@@ -19,7 +19,31 @@ class AuthController extends Controller
 
         $user = User::where('usuario', $request->usuario)->first();
 
-        if (!$user || !Hash::check($request->password, $user->password)) {
+        if (!$user) {
+            return response()->json(['message' => 'Credenciales incorrectas.'], 401);
+        }
+
+        // Try bcrypt first
+        $authenticated = false;
+        try {
+            if (Hash::check($request->password, $user->password)) {
+                $authenticated = true;
+            }
+        } catch (\RuntimeException $e) {
+            // Not a valid bcrypt hash — fall through to SHA-256 check
+        }
+
+        // Fallback: SHA-256 legacy password check (production uses SHA-256)
+        if (!$authenticated && strlen($user->password) === 64 && ctype_xdigit($user->password)) {
+            if (hash('sha256', $request->password) === $user->password) {
+                // Match — rehash to bcrypt and save (hashed cast auto-bcrypts)
+                $user->password = $request->password;
+                $user->save();
+                $authenticated = true;
+            }
+        }
+
+        if (!$authenticated) {
             return response()->json(['message' => 'Credenciales incorrectas.'], 401);
         }
 

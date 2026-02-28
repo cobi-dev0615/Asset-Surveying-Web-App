@@ -13,18 +13,9 @@
     <div class="card-body" style="padding:0;">
         <div class="toolbar" style="padding:1rem 1.5rem;">
             <div class="toolbar-left">
-                <form method="GET" style="display:flex; gap:0.5rem; flex:1; flex-wrap:wrap;">
-                    <select name="empresa_id" class="form-control" style="width:auto; min-width:180px;">
-                        <option value="">Todas las empresas</option>
-                        @foreach($empresas as $emp)
-                            <option value="{{ $emp->id }}" {{ request('empresa_id') == $emp->id ? 'selected' : '' }}>{{ $emp->nombre }}</option>
-                        @endforeach
-                    </select>
-                    <button type="submit" class="btn btn-outline btn-sm">Filtrar</button>
-                    @if(request('empresa_id'))
-                        <a href="{{ route('reportes.acumulado') }}" class="btn btn-ghost btn-sm">Limpiar</a>
-                    @endif
-                </form>
+                <div style="font-size:0.85rem; color:var(--text-secondary);">
+                    Resumen de la empresa seleccionada
+                </div>
             </div>
             <div class="toolbar-right">
                 <a href="{{ route('reportes.acumulado.export', request()->query()) }}" class="btn btn-success btn-sm">

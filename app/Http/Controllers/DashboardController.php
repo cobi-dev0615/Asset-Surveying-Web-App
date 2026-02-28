@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Models\ActivoFijoInventario;
 use App\Models\ActivoFijoRegistro;
-use App\Models\ActivoNoEncontrado;
 use App\Models\Empresa;
 use App\Models\Inventario;
 use App\Models\ActivoFijoProducto;

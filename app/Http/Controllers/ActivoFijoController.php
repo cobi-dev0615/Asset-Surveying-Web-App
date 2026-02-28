@@ -28,7 +28,8 @@ class ActivoFijoController extends Controller
             $query->where('status_id', $request->status_id);
         }
 
-        $sesiones = $query->withCount('registros', 'noEncontrados')
+        $sesiones = $query->withCount('registros')
+            ->withCount(['productos as no_encontrados_count' => fn ($q) => $q->where('no_encontrado', true)->where('eliminado', false)])
             ->orderBy('created_at', 'desc')
             ->paginate(15)
             ->withQueryString();
@@ -66,8 +67,9 @@ class ActivoFijoController extends Controller
 
     public function show(ActivoFijoInventario $activo_fijo)
     {
-        $activo_fijo->load('empresa', 'sucursal', 'status', 'usuario', 'registros.usuario', 'noEncontrados');
-        $activo_fijo->loadCount('registros', 'noEncontrados');
+        $activo_fijo->load('empresa', 'sucursal', 'status', 'usuario', 'registros.usuario');
+        $activo_fijo->loadCount('registros');
+        $activo_fijo->loadCount(['productos as no_encontrados_count' => fn ($q) => $q->where('no_encontrado', true)->where('eliminado', false)]);
 
         return view('activo-fijo.show', compact('activo_fijo'));
     }

@@ -131,27 +131,32 @@
     </div>
 </div>
 
-@if($activo_fijo->noEncontrados->count())
+@if($activo_fijo->no_encontrados_count > 0)
+@php
+    $noEncontradosProductos = $activo_fijo->productos()->where('no_encontrado', true)->where('eliminado', false)->limit(100)->get();
+@endphp
 <div class="card">
-    <div class="card-header">Activos No Encontrados</div>
+    <div class="card-header">Activos No Encontrados ({{ $activo_fijo->no_encontrados_count }})</div>
     <div class="card-body" style="padding:0;">
         <div class="table-wrapper">
             <table>
                 <thead>
                     <tr>
-                        <th>ID Activo</th>
-                        <th>Latitud</th>
-                        <th>Longitud</th>
-                        <th>Fecha</th>
+                        <th>N° Activo</th>
+                        <th>N° Tag</th>
+                        <th>N° Serie</th>
+                        <th>Categoría</th>
+                        <th>Descripción</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach($activo_fijo->noEncontrados as $ne)
+                    @foreach($noEncontradosProductos as $ne)
                     <tr>
-                        <td style="font-weight:500;">{{ $ne->activo }}</td>
-                        <td>{{ $ne->latitud }}</td>
-                        <td>{{ $ne->longitud }}</td>
-                        <td style="font-size:0.8rem; color:var(--text-secondary);">{{ $ne->created_at->format('d/m/Y H:i') }}</td>
+                        <td style="font-weight:500;">{{ $ne->codigo_1 }}</td>
+                        <td>{{ $ne->codigo_2 ?? '' }}</td>
+                        <td>{{ $ne->n_serie ?? '' }}</td>
+                        <td>{{ $ne->categoria_2 ?? '' }}</td>
+                        <td>{{ Str::limit($ne->descripcion, 50) }}</td>
                     </tr>
                     @endforeach
                 </tbody>

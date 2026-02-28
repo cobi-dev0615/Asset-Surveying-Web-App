@@ -159,11 +159,20 @@ class ActivoFijoProductoController extends Controller
             'observaciones' => 'nullable|string|max:1000',
         ]);
 
-        $producto->update($request->only([
-            'codigo_1', 'codigo_2', 'codigo_3', 'tag_rfid',
-            'descripcion', 'n_serie', 'n_serie_nuevo',
-            'categoria_1', 'categoria_2', 'marca', 'modelo', 'observaciones',
-        ]));
+        $producto->update([
+            'codigo_1' => $request->input('codigo_1', ''),
+            'codigo_2' => $request->input('codigo_2', '') ?? '',
+            'codigo_3' => $request->input('codigo_3', '') ?? '',
+            'tag_rfid' => $request->input('tag_rfid', '') ?? '',
+            'descripcion' => $request->input('descripcion', ''),
+            'n_serie' => $request->input('n_serie', '') ?? '',
+            'n_serie_nuevo' => $request->input('n_serie_nuevo', '') ?? '',
+            'categoria_1' => $request->input('categoria_1', '') ?? '',
+            'categoria_2' => $request->input('categoria_2', '') ?? '',
+            'marca' => $request->input('marca', '') ?? '',
+            'modelo' => $request->input('modelo', '') ?? '',
+            'observaciones' => $request->input('observaciones', '') ?? '',
+        ]);
 
         return redirect()->route('activo-fijo-productos.index')
             ->with('success', 'Activo fijo actualizado exitosamente.');

@@ -48,7 +48,7 @@ php artisan view:cache
 # 7. Done
 echo "[7/7] Deployment complete!"
 echo ""
-echo "  URL: https://app.seretail.com.mx"
+echo "  URL: https://app-test.seretail.com.mx"
 echo "  Login: avillegas / admin123"
 echo ""
 echo "  To clear caches: php artisan optimize:clear"

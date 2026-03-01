@@ -1,6 +1,6 @@
 *.log
 .DS_Store
-.env
+# .env - included for CPanel deployment
 .env.backup
 # .env.production - kept in repo for deployment
 .phpactor.json

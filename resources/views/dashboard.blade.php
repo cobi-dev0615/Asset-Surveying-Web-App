@@ -195,9 +195,8 @@
             <div style="display:flex; justify-content:center; align-items:center;">
                 <div style="position:relative; width:280px; height:280px;">
                     <canvas id="chartAvanceArea"></canvas>
-                    <div style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); text-align:center;">
-                        <div style="font-size:0.72rem; color:var(--text-secondary);">Porcentaje</div>
-                        <div style="font-size:0.72rem; color:var(--text-secondary);">por área</div>
+                    <div style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); text-align:center; pointer-events:none;">
+                        <div style="font-size:0.82rem; font-weight:600; color:var(--text);">Porcentaje por área</div>
                     </div>
                 </div>
             </div>
@@ -430,6 +429,37 @@ function refreshAvanceCategoria() {
 }
 
 // ── Chart creation helpers ──
+
+// Plugin: draw percentage labels on doughnut segments
+var doughnutLabelsPlugin = {
+    id: 'doughnutLabels',
+    afterDraw: function(chart) {
+        var ctx = chart.ctx;
+        var dataset = chart.data.datasets[0];
+        var meta = chart.getDatasetMeta(0);
+        var total = dataset.data.reduce(function(a, b) { return a + b; }, 0);
+        if (total === 0) return;
+
+        ctx.save();
+        ctx.font = 'bold 11px sans-serif';
+        ctx.fillStyle = '#fff';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+
+        meta.data.forEach(function(arc, i) {
+            var pct = ((dataset.data[i] / total) * 100);
+            if (pct < 3) return; // skip tiny slices
+            var props = arc.getProps(['x', 'y', 'startAngle', 'endAngle', 'innerRadius', 'outerRadius']);
+            var midAngle = (props.startAngle + props.endAngle) / 2;
+            var midRadius = (props.innerRadius + props.outerRadius) / 2;
+            var x = props.x + Math.cos(midAngle) * midRadius;
+            var y = props.y + Math.sin(midAngle) * midRadius;
+            ctx.fillText(pct.toFixed(1) + '%', x, y);
+        });
+        ctx.restore();
+    }
+};
+
 function createAreaChart(labels, values) {
     return new Chart(document.getElementById('chartAvanceArea'), {
         type: 'doughnut',
@@ -440,13 +470,14 @@ function createAreaChart(labels, values) {
         options: {
             responsive: true, maintainAspectRatio: false, cutout: '55%',
             plugins: {
-                legend: { position: 'bottom', labels: { padding: 12, font: { size: 10 }, usePointStyle: true } },
+                legend: { display: false },
                 tooltip: { callbacks: { label: function(ctx) {
                     var total = ctx.dataset.data.reduce(function(a,b){return a+b;}, 0);
                     return ctx.label + ': ' + ctx.parsed + ' (' + ((ctx.parsed/total)*100).toFixed(1) + '%)';
                 }}}
             }
-        }
+        },
+        plugins: [doughnutLabelsPlugin]
     });
 }
 

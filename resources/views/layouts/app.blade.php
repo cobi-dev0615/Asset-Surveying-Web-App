@@ -313,9 +313,9 @@
         .breadcrumb-sep { color: var(--text-light); }
 
         /* ===== PAGE HEADER ===== */
-        .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem; }
-        .page-header h2 { font-size: 1.25rem; font-weight: 600; color: var(--text); }
-        .page-header-actions { display: flex; gap: 0.5rem; }
+        .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 0.5rem; }
+        .page-header h2 { font-size: 1.25rem; font-weight: 600; color: var(--text); white-space: nowrap; }
+        .page-header-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
 
         /* ===== PANELS (SmartAdmin style) ===== */
         .panel {
@@ -639,10 +639,24 @@
             @if(session('has_inventarios_ssr'))
             {{-- Inventario de Productos --}}
             <div class="sidebar-section">Inventario de Productos</div>
-            <a href="/inventarios" class="{{ request()->is('inventarios*') ? 'active' : '' }}" data-tooltip="Sesiones de Inventario">
+            <a href="/inventarios" class="{{ request()->is('inventarios') || request()->is('inventarios/*') ? 'active' : '' }}" data-tooltip="Sesiones de Inventario">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg>
                 <span class="nav-label">Sesiones de Inventario</span>
             </a>
+            <div class="sidebar-menu-group">
+                <button class="sidebar-toggle-btn {{ request()->is('inventario-reportes*') ? 'open' : '' }}" onclick="toggleSubmenu(this)" data-tooltip="Reportes Inventario">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                    <span class="nav-label">Reportes Inventario</span>
+                    <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+                </button>
+                <div class="sidebar-collapsible sidebar-sub {{ request()->is('inventario-reportes*') ? 'open' : '' }}" data-title="Reportes Inventario">
+                    <a href="/inventario-reportes/agrupado-producto" class="{{ request()->is('inventario-reportes/agrupado-producto') ? 'active' : '' }}">Agrupado por Producto</a>
+                    <a href="/inventario-reportes/agrupado-producto-ubicacion" class="{{ request()->is('inventario-reportes/agrupado-producto-ubicacion') ? 'active' : '' }}">Por Producto y Ubicacion</a>
+                    <a href="/inventario-reportes/detalle" class="{{ request()->is('inventario-reportes/detalle') ? 'active' : '' }}">Detalle de Conteo</a>
+                    <a href="/inventario-reportes/diferencias" class="{{ request()->is('inventario-reportes/diferencias') ? 'active' : '' }}">Diferencias</a>
+                    <a href="/inventario-reportes/gnc" class="{{ request()->is('inventario-reportes/gnc') ? 'active' : '' }}">Reporte GNC</a>
+                </div>
+            </div>
             @endif
 
             @if(session('has_activo_fijo'))

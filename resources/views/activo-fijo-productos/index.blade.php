@@ -61,7 +61,7 @@
         </div>
 
         {{-- Table --}}
-        <div class="table-wrapper">
+        <div class="table-wrapper table-scroll">
             <table class="tbl-activos" id="tblActivos">
                 <colgroup>
                     <col style="width:9%;">
@@ -371,9 +371,13 @@
     .btn-catalog-action:disabled { opacity: 0.45; cursor: not-allowed; box-shadow: none; }
     .btn-catalog-action svg { width: 16px; height: 16px; }
 
+    /* Scrollable table container */
+    .table-scroll { max-height: 620px; overflow-y: auto; }
+
     /* Fixed-layout table */
     .tbl-activos { table-layout: fixed; width: 100%; }
     .tbl-activos td, .tbl-activos th { font-size: 0.78rem; }
+    .tbl-activos thead th { position: sticky; top: 0; z-index: 10; background: var(--surface, #fff); box-shadow: 0 1px 0 var(--border, #dee2e6); }
 
     /* Truncate cells */
     .cell-truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

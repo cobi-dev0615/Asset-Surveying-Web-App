@@ -82,6 +82,7 @@
                                 ['key' => 'empresa_id', 'label' => 'Empresa'],
                                 ['key' => 'codigo', 'label' => 'Código Sucursal'],
                                 ['key' => 'nombre', 'label' => 'Nombre de la Sucursal'],
+                                ['key' => null, 'label' => 'Tipo Levantamiento'],
                                 ['key' => null, 'label' => 'Local'],
                                 ['key' => 'ciudad', 'label' => 'Ciudad'],
                                 ['key' => null, 'label' => 'Status'],
@@ -124,6 +125,12 @@
                         <td class="cell-truncate" style="max-width:180px;">{{ $s->empresa->nombre ?? '' }}</td>
                         <td>{{ $s->codigo }}</td>
                         <td style="font-weight:500;">{{ $s->nombre }}</td>
+                        <td onclick="event.stopPropagation();">
+                            <select class="tipo-lev-select" data-empresa-id="{{ $s->empresa_id }}" onchange="cambiarTipo(this)">
+                                <option value="activo_fijo" {{ ($s->empresa->tipo_levantamiento ?? 'activo_fijo') === 'activo_fijo' ? 'selected' : '' }}>Activo Fijo</option>
+                                <option value="inventario" {{ ($s->empresa->tipo_levantamiento ?? '') === 'inventario' ? 'selected' : '' }}>Inventario</option>
+                            </select>
+                        </td>
                         <td>{{ $latestSession->local ?? '' }}</td>
                         <td>{{ $s->ciudad ?? '' }}</td>
                         <td>
@@ -135,7 +142,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="7" class="table-empty">
+                        <td colspan="8" class="table-empty">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
                             <div>No se encontraron sucursales</div>
                         </td>
@@ -207,6 +214,14 @@
     .selectable-row { cursor: pointer; transition: background 0.15s; }
     .selectable-row:hover { background: #e8f0ed !important; }
     .selectable-row.selected { background: #c8e6c9 !important; }
+
+    .tipo-lev-select {
+        padding: 0.2rem 0.35rem; font-size: 0.74rem; border: 1px solid var(--border);
+        border-radius: var(--radius); background: #fff; cursor: pointer;
+        color: var(--text); font-weight: 500; transition: border-color 0.2s;
+    }
+    .tipo-lev-select:focus { border-color: var(--primary); outline: none; }
+    .tipo-lev-select.saved { border-color: #4CAF50; background: #e8f5e9; }
 </style>
 @endpush
 
@@ -247,6 +262,36 @@
         url.searchParams.set('per_page', val);
         url.searchParams.set('page', '1');
         window.location = url;
+    }
+
+    // ─── Tipo Levantamiento ───
+    function cambiarTipo(select) {
+        var empresaId = select.getAttribute('data-empresa-id');
+        var tipo = select.value;
+
+        fetch('/empresas/' + empresaId + '/tipo-levantamiento', {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({ tipo_levantamiento: tipo })
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.success) {
+                // Update all selects for the same empresa
+                document.querySelectorAll('.tipo-lev-select[data-empresa-id="' + empresaId + '"]').forEach(function(s) {
+                    s.value = tipo;
+                    s.classList.add('saved');
+                    setTimeout(function() { s.classList.remove('saved'); }, 1500);
+                });
+            }
+        })
+        .catch(function() {
+            alert('Error al actualizar el tipo de levantamiento.');
+        });
     }
 
     document.getElementById('searchInput').addEventListener('keydown', function(e) {

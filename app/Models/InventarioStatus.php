@@ -11,6 +11,8 @@ class InventarioStatus extends Model
 
     protected $fillable = ['status'];
 
+    protected $appends = ['nombre'];
+
     public function getNombreAttribute(): string
     {
         return $this->status;

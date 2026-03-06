@@ -31,7 +31,7 @@ class EmpresaController extends Controller
 
     public function index(Request $request)
     {
-        $allowedSorts = ['codigo', 'nombre', 'sucursales_count', 'created_at'];
+        $allowedSorts = ['codigo', 'nombre', 'tipo_levantamiento', 'sucursales_count', 'created_at'];
         $sort = in_array($request->sort, $allowedSorts) ? $request->sort : 'created_at';
         $dir = $request->dir === 'asc' ? 'asc' : 'desc';
         $perPage = in_array((int)$request->per_page, [10, 25, 50, 100]) ? (int)$request->per_page : 20;
@@ -109,6 +109,18 @@ class EmpresaController extends Controller
         return redirect()->route('empresas.index')->with('success', 'Empresa eliminada exitosamente.');
     }
 
+    public function updateTipoLevantamiento(Request $request, Empresa $empresa)
+    {
+        abort_unless(Auth::user()->esSupervisor(), 403);
+        $request->validate([
+            'tipo_levantamiento' => 'required|in:activo_fijo,inventario',
+        ]);
+
+        $empresa->update(['tipo_levantamiento' => $request->tipo_levantamiento]);
+
+        return response()->json(['success' => true, 'tipo_levantamiento' => $empresa->tipo_levantamiento]);
+    }
+
     public function exportar(Request $request)
     {
         $empresas = $this->buildQuery($request)->orderBy('created_at', 'desc')->get();
@@ -117,10 +129,10 @@ class EmpresaController extends Controller
         $sheet = $spreadsheet->getActiveSheet();
         $sheet->setTitle('Empresas');
 
-        $headers = ['Código', 'Nombre', 'Sucursales', 'Fecha Creación'];
+        $headers = ['Código', 'Nombre', 'Tipo Levantamiento', 'Sucursales', 'Fecha Creación'];
         $sheet->fromArray($headers, null, 'A1');
 
-        $headerStyle = $sheet->getStyle('A1:D1');
+        $headerStyle = $sheet->getStyle('A1:E1');
         $headerStyle->getFont()->setBold(true)->setSize(10);
         $headerStyle->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
             ->getStartColor()->setRGB('2E7D32');
@@ -128,16 +140,18 @@ class EmpresaController extends Controller
 
         $row = 2;
         foreach ($empresas as $e) {
+            $tipoLev = ($e->tipo_levantamiento ?? 'activo_fijo') === 'inventario' ? 'Inventario' : 'Activo Fijo';
             $sheet->fromArray([
                 $e->codigo,
                 $e->nombre,
+                $tipoLev,
                 $e->sucursales_count,
                 $e->created_at?->format('Y-m-d H:i:s') ?? '',
             ], null, "A{$row}");
             $row++;
         }
 
-        foreach (range('A', 'D') as $col) {
+        foreach (range('A', 'E') as $col) {
             $sheet->getColumnDimension($col)->setAutoSize(true);
         }
 

@@ -15,7 +15,7 @@ class InventarioApiController extends Controller
     {
         $inventarios = Inventario::where('eliminado', false)
             ->whereIn('empresa_id', $request->user()->empresas->pluck('id'))
-            ->with('sucursal', 'status')
+            ->with('sucursal', 'status', 'empresa')
             ->orderBy('created_at', 'desc')
             ->get();
 

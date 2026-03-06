@@ -10,6 +10,7 @@ use App\Http\Controllers\InventarioController;
 use App\Http\Controllers\OrdenEntradaController;
 use App\Http\Controllers\ProductoController;
 use App\Http\Controllers\SucursalController;
+use App\Http\Controllers\InventarioReporteController;
 use App\Http\Controllers\ReporteController;
 use App\Http\Controllers\TransferenciaController;
 use App\Http\Controllers\UsuarioController;
@@ -54,6 +55,7 @@ Route::middleware('auth')->group(function () {
             Route::post('/empresas/{empresa}/imagenes/reducir', [EmpresaController::class, 'reducirImagenes'])->name('empresas.imagenes.reducir');
             Route::post('/empresas/{empresa}/imagenes/redimensionar', [EmpresaController::class, 'redimensionarImagenes'])->name('empresas.imagenes.redimensionar');
             Route::post('/empresas/{empresa}/imagenes/eliminar', [EmpresaController::class, 'eliminarImagenes'])->name('empresas.imagenes.eliminar');
+            Route::put('/empresas/{empresa}/tipo-levantamiento', [EmpresaController::class, 'updateTipoLevantamiento'])->name('empresas.tipo-levantamiento');
             Route::resource('empresas', EmpresaController::class)->except('show');
             Route::get('/sucursales/exportar', [SucursalController::class, 'exportar'])->name('sucursales.export');
             Route::post('/sucursales/{sucursal}/imagenes-residuales', [SucursalController::class, 'eliminarImagenesResiduales'])->name('sucursales.imagenes.residuales');
@@ -98,6 +100,18 @@ Route::middleware('auth')->group(function () {
             Route::get('/reportes/acumulado/imprimir', [ReporteController::class, 'acumuladoImprimir'])->name('reportes.acumulado.print');
             Route::get('/reportes/sesiones-movil', [ReporteController::class, 'sesionesMovil'])->name('reportes.sesiones-movil');
             Route::get('/reportes/sesiones-movil/exportar', [ReporteController::class, 'exportSesionesMovil'])->name('reportes.sesiones-movil.export');
+
+            // Reportes de Inventario (Stock Counting)
+            Route::get('/inventario-reportes/agrupado-producto', [InventarioReporteController::class, 'agrupadoProducto'])->name('inventario-reportes.agrupado-producto');
+            Route::get('/inventario-reportes/agrupado-producto/exportar', [InventarioReporteController::class, 'exportAgrupadoProducto'])->name('inventario-reportes.agrupado-producto.export');
+            Route::get('/inventario-reportes/agrupado-producto-ubicacion', [InventarioReporteController::class, 'agrupadoProductoUbicacion'])->name('inventario-reportes.agrupado-producto-ubicacion');
+            Route::get('/inventario-reportes/agrupado-producto-ubicacion/exportar', [InventarioReporteController::class, 'exportAgrupadoProductoUbicacion'])->name('inventario-reportes.agrupado-producto-ubicacion.export');
+            Route::get('/inventario-reportes/detalle', [InventarioReporteController::class, 'detalle'])->name('inventario-reportes.detalle');
+            Route::get('/inventario-reportes/detalle/exportar', [InventarioReporteController::class, 'exportDetalle'])->name('inventario-reportes.detalle.export');
+            Route::get('/inventario-reportes/diferencias', [InventarioReporteController::class, 'diferencias'])->name('inventario-reportes.diferencias');
+            Route::get('/inventario-reportes/diferencias/exportar', [InventarioReporteController::class, 'exportDiferencias'])->name('inventario-reportes.diferencias.export');
+            Route::get('/inventario-reportes/gnc', [InventarioReporteController::class, 'gnc'])->name('inventario-reportes.gnc');
+            Route::get('/inventario-reportes/gnc/exportar', [InventarioReporteController::class, 'exportGnc'])->name('inventario-reportes.gnc.export');
         });
 
         // === Super Admin + Supervisor + Supervisor Invitado + Capturista ===

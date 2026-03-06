@@ -69,10 +69,48 @@ class InventarioController extends Controller
 
     public function show(Inventario $inventario)
     {
-        $inventario->load('empresa', 'sucursal', 'status', 'usuario', 'registros.usuario');
+        $inventario->load('empresa', 'sucursal', 'status', 'usuario');
         $inventario->loadCount('registros', 'detalles');
 
-        return view('inventarios.show', compact('inventario'));
+        // Progress stats from inventario_detalle
+        $stats = \App\Models\InventarioDetalle::where('inventario_id', $inventario->id)
+            ->where('eliminado', false)
+            ->selectRaw('
+                COUNT(*) as total_capturas,
+                COUNT(DISTINCT codigo_1) as productos_unicos,
+                SUM(cantidad) as conteo_total,
+                COUNT(DISTINCT nombre_almacen) as almacenes,
+                COUNT(DISTINCT ubicacion_1) as ubicaciones,
+                COUNT(DISTINCT nombre_usuario) as usuarios_activos,
+                SUM(forzado) as forzados,
+                MIN(fecha_captura) as primera_captura,
+                MAX(fecha_captura) as ultima_captura
+            ')->first();
+
+        // Per-user breakdown
+        $porUsuario = \App\Models\InventarioDetalle::where('inventario_id', $inventario->id)
+            ->where('eliminado', false)
+            ->selectRaw('nombre_usuario, COUNT(*) as capturas, SUM(cantidad) as cantidad_total, MIN(fecha_captura) as primera, MAX(fecha_captura) as ultima')
+            ->groupBy('nombre_usuario')
+            ->orderByDesc('capturas')
+            ->get();
+
+        // Per-warehouse breakdown
+        $porAlmacen = \App\Models\InventarioDetalle::where('inventario_id', $inventario->id)
+            ->where('eliminado', false)
+            ->selectRaw('nombre_almacen, COUNT(*) as capturas, SUM(cantidad) as cantidad_total, COUNT(DISTINCT codigo_1) as productos')
+            ->groupBy('nombre_almacen')
+            ->orderByDesc('capturas')
+            ->get();
+
+        // Recent activity (last 20 captures)
+        $actividad = \App\Models\InventarioDetalle::where('inventario_id', $inventario->id)
+            ->where('eliminado', false)
+            ->orderByDesc('created_at')
+            ->limit(20)
+            ->get();
+
+        return view('inventarios.show', compact('inventario', 'stats', 'porUsuario', 'porAlmacen', 'actividad'));
     }
 
     public function edit(Inventario $inventario)

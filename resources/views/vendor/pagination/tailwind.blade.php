@@ -1,8 +1,5 @@
 @if ($paginator->hasPages())
     <nav class="pagination-wrapper">
-        <div class="pagination-info">
-            Mostrando {{ $paginator->firstItem() ?? 0 }} a {{ $paginator->lastItem() ?? 0 }} de {{ number_format($paginator->total()) }} resultados
-        </div>
         <div class="pagination">
             {{-- Previous --}}
             @if ($paginator->onFirstPage())

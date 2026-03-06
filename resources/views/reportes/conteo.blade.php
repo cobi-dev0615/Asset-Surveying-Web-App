@@ -59,12 +59,6 @@
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                         <input type="text" name="buscar" class="form-control" placeholder="Search" value="{{ request('buscar') }}" style="min-width:180px;">
                     </div>
-                    <select name="inventario_id" class="form-control" style="width:auto; min-width:160px; font-size:0.82rem;" onchange="this.form.submit()">
-                        <option value="">Todas las sesiones</option>
-                        @foreach($sesiones as $ses)
-                            <option value="{{ $ses->id }}" {{ request('inventario_id') == $ses->id ? 'selected' : '' }}>Sesión #{{ $ses->id }}</option>
-                        @endforeach
-                    </select>
                 </form>
                 @if(request()->hasAny(['buscar', 'inventario_id', 'duplicados']))
                     <a href="{{ route('reportes.conteo', ['per_page' => $perPage]) }}" class="btn btn-ghost btn-sm">Limpiar filtros</a>
@@ -119,7 +113,7 @@
         </div>
 
         {{-- Table --}}
-        <div class="table-wrapper">
+        <div class="table-wrapper table-scroll">
             <table class="tbl-conteo" id="tblConteo">
                 <thead>
                     <tr>
@@ -318,16 +312,21 @@
 @push('styles')
 <style>
     /* Action buttons */
+    .page-header-actions { flex-wrap: nowrap !important; }
     .btn-catalog-action {
-        display: inline-flex; align-items: center; gap: 0.45rem;
-        padding: 0.5rem 0.9rem; border: none; border-radius: var(--radius);
-        font-size: 0.8rem; font-weight: 600; color: #fff;
+        display: inline-flex; align-items: center; gap: 0.3rem;
+        padding: 0.4rem 0.6rem; border: none; border-radius: var(--radius);
+        font-size: 0.72rem; font-weight: 600; color: #fff; white-space: nowrap;
         cursor: pointer; transition: var(--transition);
         text-decoration: none;
     }
     .btn-catalog-action:hover { opacity: 0.88; color: #fff; box-shadow: var(--shadow); }
     .btn-catalog-action:disabled { opacity: 0.45; cursor: not-allowed; box-shadow: none; }
     .btn-catalog-action svg { width: 16px; height: 16px; }
+
+    /* Scrollable table */
+    .table-scroll { max-height: 520px; overflow-y: auto; }
+    .tbl-conteo thead th { position: sticky; top: 0; z-index: 10; background: var(--surface, #fff); box-shadow: 0 1px 0 var(--border, #dee2e6); }
 
     /* Table */
     .tbl-conteo { table-layout: auto; width: 100%; }
@@ -484,7 +483,17 @@
         window.location = url;
     }
 
-    // Column visibility
+    // Column visibility (persisted in localStorage)
+    var STORAGE_KEY = 'conteo_hidden_cols';
+
+    function getHiddenCols() {
+        try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; } catch(e) { return []; }
+    }
+
+    function saveHiddenCols(hidden) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(hidden));
+    }
+
     function toggleColumnMenu() {
         var menu = document.getElementById('columnMenu');
         menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
@@ -494,7 +503,31 @@
         document.querySelectorAll('.' + className).forEach(function(el) {
             el.style.display = visible ? '' : 'none';
         });
+        var hidden = getHiddenCols();
+        if (visible) {
+            hidden = hidden.filter(function(c) { return c !== className; });
+        } else if (hidden.indexOf(className) === -1) {
+            hidden.push(className);
+        }
+        saveHiddenCols(hidden);
     }
+
+    // Restore hidden columns on page load
+    (function() {
+        var hidden = getHiddenCols();
+        hidden.forEach(function(className) {
+            document.querySelectorAll('.' + className).forEach(function(el) {
+                el.style.display = 'none';
+            });
+            // Uncheck the corresponding checkbox
+            var checkboxes = document.querySelectorAll('#columnMenu input[type="checkbox"]');
+            checkboxes.forEach(function(cb) {
+                if (cb.getAttribute('onchange').indexOf(className) !== -1) {
+                    cb.checked = false;
+                }
+            });
+        });
+    })();
 
     // Close column menu on outside click
     document.addEventListener('click', function(e) {

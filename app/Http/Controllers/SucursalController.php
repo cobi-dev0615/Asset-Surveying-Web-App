@@ -110,10 +110,10 @@ class SucursalController extends Controller
         $sheet = $spreadsheet->getActiveSheet();
         $sheet->setTitle('Sucursales');
 
-        $headers = ['Empresa', 'Código Sucursal', 'Nombre de la Sucursal', 'Local', 'Ciudad', 'Status', 'Fecha Creación'];
+        $headers = ['Empresa', 'Código Sucursal', 'Nombre de la Sucursal', 'Tipo Levantamiento', 'Local', 'Ciudad', 'Status', 'Fecha Creación'];
         $sheet->fromArray($headers, null, 'A1');
 
-        $headerStyle = $sheet->getStyle('A1:G1');
+        $headerStyle = $sheet->getStyle('A1:H1');
         $headerStyle->getFont()->setBold(true)->setSize(10);
         $headerStyle->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
             ->getStartColor()->setRGB('2E7D32');
@@ -122,10 +122,12 @@ class SucursalController extends Controller
         $row = 2;
         foreach ($sucursales as $s) {
             $latestSession = $s->activoFijoInventarios->first();
+            $tipoLev = ($s->empresa->tipo_levantamiento ?? 'activo_fijo') === 'inventario' ? 'Inventario' : 'Activo Fijo';
             $sheet->fromArray([
                 $s->empresa->nombre ?? '',
                 $s->codigo,
                 $s->nombre,
+                $tipoLev,
                 $latestSession->local ?? '',
                 $s->ciudad ?? '',
                 $latestSession?->status?->nombre ?? '',
@@ -134,7 +136,7 @@ class SucursalController extends Controller
             $row++;
         }
 
-        foreach (range('A', 'G') as $col) {
+        foreach (range('A', 'H') as $col) {
             $sheet->getColumnDimension($col)->setAutoSize(true);
         }
 

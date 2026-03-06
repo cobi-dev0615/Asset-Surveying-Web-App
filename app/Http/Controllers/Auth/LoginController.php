@@ -20,7 +20,6 @@ class LoginController extends Controller
         $credentials = $request->validate([
             'usuario' => 'required|string',
             'password' => 'required|string',
-            'rol_tipo' => 'nullable|string',
         ]);
 
         // Try standard bcrypt authentication first
@@ -44,7 +43,7 @@ class LoginController extends Controller
             }
         }
 
-        return back()->withErrors(['usuario' => 'Usuario o contraseña incorrectos.'])->withInput($request->only('usuario', 'rol_tipo'));
+        return back()->withErrors(['usuario' => 'Usuario o contraseña incorrectos.'])->withInput($request->only('usuario'));
     }
 
     private function handleSuccessfulLogin(Request $request)
@@ -53,19 +52,12 @@ class LoginController extends Controller
 
         if (!$user->tieneAccesoWeb()) {
             Auth::logout();
-            return back()->withErrors(['usuario' => 'No tienes acceso a la plataforma web. Contacta al administrador.'])->withInput($request->only('usuario', 'rol_tipo'));
+            return back()->withErrors(['usuario' => 'No tienes acceso a la plataforma web. Contacta al administrador.'])->withInput($request->only('usuario'));
         }
 
         if ($user->sesionExpirada()) {
             Auth::logout();
-            return back()->withErrors(['usuario' => 'Tu sesión ha expirado. Contacta al administrador.'])->withInput($request->only('usuario', 'rol_tipo'));
-        }
-
-        // Validate role type matches if provided
-        $rolTipo = $request->input('rol_tipo');
-        if ($rolTipo && $user->rol->slug !== $rolTipo) {
-            Auth::logout();
-            return back()->withErrors(['usuario' => 'Tu cuenta no tiene el rol seleccionado. Contacta al administrador.'])->withInput($request->only('usuario', 'rol_tipo'));
+            return back()->withErrors(['usuario' => 'Tu sesión ha expirado. Contacta al administrador.'])->withInput($request->only('usuario'));
         }
 
         $request->session()->regenerate();

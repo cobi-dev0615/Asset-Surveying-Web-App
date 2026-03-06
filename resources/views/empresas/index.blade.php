@@ -74,6 +74,7 @@
                             $columns = [
                                 ['key' => 'codigo', 'label' => 'Código'],
                                 ['key' => 'nombre', 'label' => 'Nombre'],
+                                ['key' => 'tipo_levantamiento', 'label' => 'Tipo Levantamiento'],
                                 ['key' => 'sucursales_count', 'label' => 'Sucursales'],
                                 ['key' => 'created_at', 'label' => 'Fecha Creación'],
                             ];
@@ -99,12 +100,18 @@
                     <tr data-id="{{ $empresa->id }}" onclick="selectRow(this)" class="clickable-row">
                         <td style="font-weight:500;">{{ $empresa->codigo }}</td>
                         <td>{{ $empresa->nombre }}</td>
+                        <td onclick="event.stopPropagation();">
+                            <select class="tipo-lev-select" data-empresa-id="{{ $empresa->id }}" onchange="cambiarTipo(this)">
+                                <option value="activo_fijo" {{ $empresa->tipo_levantamiento === 'activo_fijo' ? 'selected' : '' }}>Activo Fijo</option>
+                                <option value="inventario" {{ $empresa->tipo_levantamiento === 'inventario' ? 'selected' : '' }}>Inventario</option>
+                            </select>
+                        </td>
                         <td>{{ $empresa->sucursales_count }}</td>
                         <td class="cell-date">{{ $empresa->created_at?->format('Y-m-d H:i:s') ?? '' }}</td>
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="4" class="table-empty">
+                        <td colspan="5" class="table-empty">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
                             <div>No se encontraron empresas</div>
                         </td>
@@ -250,6 +257,14 @@
     .clickable-row:hover { background: #e8f0ed !important; }
     .clickable-row.selected-row { background: #c8e6c9 !important; }
 
+    .tipo-lev-select {
+        padding: 0.25rem 0.4rem; font-size: 0.78rem; border: 1px solid var(--border);
+        border-radius: var(--radius); background: #fff; cursor: pointer;
+        color: var(--text); font-weight: 500; transition: border-color 0.2s;
+    }
+    .tipo-lev-select:focus { border-color: var(--primary); outline: none; }
+    .tipo-lev-select.saved { border-color: #4CAF50; background: #e8f5e9; }
+
     /* Modal */
     .modal-overlay {
         position: fixed; top: 0; left: 0; right: 0; bottom: 0;
@@ -336,6 +351,32 @@
         var form = document.getElementById('deleteForm');
         form.action = '/empresas/' + selectedId;
         form.submit();
+    }
+
+    // ─── Tipo Levantamiento ───
+    function cambiarTipo(select) {
+        var empresaId = select.getAttribute('data-empresa-id');
+        var tipo = select.value;
+
+        fetch('/empresas/' + empresaId + '/tipo-levantamiento', {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({ tipo_levantamiento: tipo })
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.success) {
+                select.classList.add('saved');
+                setTimeout(function() { select.classList.remove('saved'); }, 1500);
+            }
+        })
+        .catch(function() {
+            alert('Error al actualizar el tipo de levantamiento.');
+        });
     }
 
     // ─── Image management ───

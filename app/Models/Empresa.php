@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Empresa extends Model
 {
-    protected $fillable = ['codigo', 'nombre', 'logo', 'usuario_id', 'eliminado'];
+    protected $fillable = ['codigo', 'nombre', 'tipo_levantamiento', 'logo', 'usuario_id', 'eliminado'];
 
     protected function casts(): array
     {

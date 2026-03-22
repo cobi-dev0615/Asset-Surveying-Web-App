@@ -1,0 +1,30 @@
+---
+deployment:
+  tasks:
+    - export DEPLOYPATH=/home2/seretail/app-test.seretail.com.mx
+    # Copy project files to deployment directory
+    - /bin/cp -R app $DEPLOYPATH/
+    - /bin/cp -R bootstrap $DEPLOYPATH/
+    - /bin/cp -R config $DEPLOYPATH/
+    - /bin/cp -R database $DEPLOYPATH/
+    - /bin/cp -R public $DEPLOYPATH/
+    - /bin/cp -R resources $DEPLOYPATH/
+    - /bin/cp -R routes $DEPLOYPATH/
+    - /bin/cp composer.json $DEPLOYPATH/
+    - /bin/cp composer.lock $DEPLOYPATH/
+    - /bin/cp artisan $DEPLOYPATH/
+    # Install dependencies
+    - cd $DEPLOYPATH && php /opt/cpanel/composer/bin/composer install --no-dev --optimize-autoloader --no-interaction
+    # Environment setup (only on first deploy)
+    - cd $DEPLOYPATH && if [ ! -f .env ]; then cp .env.production .env && php artisan key:generate --force; fi
+    # Run migrations
+    - cd $DEPLOYPATH && php artisan migrate --force
+    # Create required directories
+    - cd $DEPLOYPATH && mkdir -p storage/app/public/fotos/activos
+    - cd $DEPLOYPATH && chmod -R 775 storage bootstrap/cache
+    # Storage link
+    - cd $DEPLOYPATH && if [ ! -L public/storage ]; then php artisan storage:link; fi
+    # Clear and rebuild cache
+    - cd $DEPLOYPATH && php artisan config:cache
+    - cd $DEPLOYPATH && php artisan route:cache
+    - cd $DEPLOYPATH && php artisan view:cache

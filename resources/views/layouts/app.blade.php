@@ -1,0 +1,859 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>@yield('title', 'SER Inventarios')</title>
+    <link rel="icon" href="/favicon.ico" type="image/x-icon">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --bg: #f5f5f5;
+            --surface: #ffffff;
+            --text: #444444;
+            --text-secondary: #6c757d;
+            --text-light: #adb5bd;
+            --border: #e4e4e4;
+            --border-dark: #cecece;
+
+            --primary: #778c85;
+            --primary-hover: #657a73;
+            --primary-light: #e8edeb;
+            --success: #2bc381;
+            --success-light: #d4f4e4;
+            --warning: #d0d725;
+            --warning-light: #f5f6d0;
+            --danger: #af37ff;
+            --danger-light: #f0deff;
+            --info: #3787ff;
+            --info-light: #dce8ff;
+
+            --sidebar-width: 260px;
+            --sidebar-collapsed-width: 60px;
+            --sidebar-bg: #4d504f;
+            --sidebar-hover: rgba(255,255,255,0.08);
+            --sidebar-active: rgba(255,255,255,0.15);
+            --sidebar-text: rgba(255,255,255,0.65);
+            --sidebar-text-active: #ffffff;
+            --sidebar-border: rgba(255,255,255,0.08);
+            --sidebar-gradient: linear-gradient(270deg, rgba(70,138,240,0.18), transparent);
+
+            --radius: 4px;
+            --radius-lg: 4px;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
+            --shadow: 0 1px 3px rgba(0,0,0,0.12), 0 0 2px rgba(0,0,0,0.14);
+            --shadow-lg: 0 10px 20px rgba(0,0,0,0.19), 0 -1px 6px rgba(0,0,0,0.13);
+            --transition: all 0.2s ease;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            line-height: 1.5;
+            font-size: 0.875rem;
+        }
+
+        a { color: var(--primary); text-decoration: none; transition: var(--transition); }
+        a:hover { color: var(--primary-hover); }
+
+        /* ===== SIDEBAR ===== */
+        .sidebar {
+            width: var(--sidebar-width);
+            background: var(--sidebar-bg);
+            background-image: var(--sidebar-gradient);
+            min-height: 100vh;
+            position: fixed;
+            left: 0; top: 0;
+            display: flex;
+            flex-direction: column;
+            z-index: 100;
+            transition: width 0.3s ease;
+            overflow: hidden;
+        }
+
+        .sidebar-brand {
+            padding: 1rem 1.25rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            border-bottom: 1px solid var(--sidebar-border);
+            background: rgba(0,0,0,0.15);
+        }
+        .sidebar-brand-icon {
+            width: 38px; height: 38px;
+            background: var(--primary);
+            border-radius: 4px;
+            display: flex; align-items: center; justify-content: center;
+            color: #fff; font-weight: 700; font-size: 1rem;
+        }
+        .sidebar-brand-text { color: #fff; font-size: 0.95rem; font-weight: 600; }
+        .sidebar-brand-text small { display: block; color: var(--sidebar-text); font-size: 0.7rem; font-weight: 400; }
+
+        .sidebar-section {
+            padding: 1rem 1.25rem 0.4rem;
+            font-size: 0.65rem; font-weight: 600; text-transform: uppercase;
+            letter-spacing: 0.1em; color: rgba(255,255,255,0.35);
+        }
+
+        .sidebar-nav { flex: 1; padding: 0.5rem 0; overflow-y: auto; overflow-x: hidden; }
+        .sidebar-nav a {
+            display: flex; align-items: center; gap: 0.65rem;
+            padding: 0.55rem 1.25rem; margin: 0;
+            color: var(--sidebar-text);
+            font-size: 0.82rem; transition: var(--transition);
+            border-left: 3px solid transparent;
+        }
+        .sidebar-nav a:hover { background: var(--sidebar-hover); color: var(--sidebar-text-active); }
+        .sidebar-nav a.active { background: var(--sidebar-active); color: var(--sidebar-text-active); border-left-color: var(--primary); font-weight: 500; }
+        .sidebar-nav a svg { width: 18px; height: 18px; flex-shrink: 0; opacity: 0.6; }
+        .sidebar-nav a.active svg { opacity: 1; }
+
+        .sidebar-sub { padding-left: 1rem; }
+        .sidebar-sub a { font-size: 0.78rem; padding: 0.4rem 1.25rem 0.4rem 2.5rem; border-left: none; }
+        .sidebar-sub a::before { content: ''; width: 5px; height: 5px; border-radius: 50%; background: rgba(255,255,255,0.25); margin-right: 0.5rem; flex-shrink: 0; }
+        .sidebar-sub a.active::before { background: var(--primary); }
+
+        .sidebar-toggle-btn {
+            display: flex; align-items: center; gap: 0.65rem;
+            padding: 0.55rem 1.25rem; margin: 0;
+            color: var(--sidebar-text);
+            font-size: 0.82rem; transition: var(--transition);
+            border-left: 3px solid transparent;
+            cursor: pointer; width: 100%; background: none; border: none; border-left: 3px solid transparent;
+            text-align: left;
+        }
+        .sidebar-toggle-btn:hover { background: var(--sidebar-hover); color: var(--sidebar-text-active); }
+        .sidebar-toggle-btn svg { width: 18px; height: 18px; flex-shrink: 0; opacity: 0.6; }
+        .sidebar-toggle-btn .chevron { margin-left: auto; transition: transform 0.2s; width: 14px; height: 14px; }
+        .sidebar-toggle-btn.open .chevron { transform: rotate(90deg); }
+        .sidebar-collapsible { display: none; }
+        .sidebar-collapsible.open { display: block; }
+
+        .sidebar-footer {
+            padding: 0.75rem 1.25rem;
+            border-top: 1px solid var(--sidebar-border);
+            color: rgba(255,255,255,0.35);
+            font-size: 0.7rem;
+            background: rgba(0,0,0,0.1);
+        }
+
+        /* ===== SIDEBAR TOGGLE ===== */
+        .sidebar-toggle { padding: 0.4rem; border-radius: var(--radius); }
+        .sidebar-toggle:hover { background: var(--bg); }
+
+        body.sidebar-collapsed .sidebar { width: var(--sidebar-collapsed-width); }
+        body.sidebar-collapsed .sidebar-brand { padding: 1rem 0; justify-content: center; }
+        body.sidebar-collapsed .sidebar-brand img { height: 28px; }
+        body.sidebar-collapsed .sidebar-brand-text { display: none; }
+        body.sidebar-collapsed .sidebar-section { display: none; }
+        body.sidebar-collapsed .sidebar-nav a {
+            padding: 0.7rem 0; justify-content: center; border-left: none; position: relative;
+        }
+        body.sidebar-collapsed .sidebar-nav a span,
+        body.sidebar-collapsed .sidebar-nav a .nav-label { display: none; }
+        body.sidebar-collapsed .sidebar-nav a svg { margin: 0; opacity: 0.7; }
+        body.sidebar-collapsed .sidebar-toggle-btn {
+            padding: 0.7rem 0; justify-content: center; border-left: none;
+        }
+        body.sidebar-collapsed .sidebar-toggle-btn .chevron,
+        body.sidebar-collapsed .sidebar-toggle-btn .nav-label { display: none; }
+        body.sidebar-collapsed .sidebar-toggle-btn svg:first-child { margin: 0; }
+        body.sidebar-collapsed .sidebar-collapsible { display: none !important; }
+        body.sidebar-collapsed .sidebar-footer { display: none; }
+        body.sidebar-collapsed .main { margin-left: var(--sidebar-collapsed-width); }
+
+        /* Tooltip on hover for collapsed sidebar (only for standalone links, not menu-group parents) */
+        body.sidebar-collapsed .sidebar-nav a::after {
+            content: attr(data-tooltip);
+            position: absolute; left: 100%; top: 50%; transform: translateY(-50%);
+            background: #333; color: #fff; padding: 0.35rem 0.65rem;
+            border-radius: 4px; font-size: 0.75rem; white-space: nowrap;
+            opacity: 0; pointer-events: none; transition: opacity 0.15s;
+            margin-left: 8px; z-index: 200;
+        }
+        body.sidebar-collapsed .sidebar-nav a:hover::after {
+            opacity: 1;
+        }
+        /* Hide tooltip on sub-links inside flyout (they show their own text) */
+        body.sidebar-collapsed .sidebar-menu-group .sidebar-sub a::after { display: none; }
+
+        /* Flyout submenu for collapsed sidebar (position: fixed to escape overflow:hidden) */
+        body.sidebar-collapsed .sidebar-collapsible.flyout-open {
+            display: block !important;
+            position: fixed;
+            min-width: 200px;
+            background: var(--sidebar-bg);
+            border-radius: 0 6px 6px 0;
+            box-shadow: 4px 4px 12px rgba(0,0,0,0.25);
+            padding: 0.35rem 0;
+            z-index: 300;
+        }
+        /* Flyout header showing the group title */
+        .sidebar-collapsible.flyout-open::before {
+            content: attr(data-title);
+            display: block;
+            padding: 0.5rem 1rem 0.35rem;
+            font-size: 0.68rem; font-weight: 600; text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: rgba(255,255,255,0.4);
+            border-bottom: 1px solid var(--sidebar-border);
+            margin-bottom: 0.25rem;
+        }
+        /* Reset sub-link styles for flyout */
+        .sidebar-collapsible.flyout-open a {
+            padding: 0.45rem 1rem !important;
+            justify-content: flex-start !important;
+            font-size: 0.78rem;
+            color: var(--sidebar-text);
+            white-space: nowrap;
+        }
+        .sidebar-collapsible.flyout-open a:hover {
+            background: var(--sidebar-hover);
+            color: var(--sidebar-text-active);
+        }
+        .sidebar-collapsible.flyout-open a.active {
+            color: var(--sidebar-text-active);
+            background: var(--sidebar-active);
+        }
+        .sidebar-collapsible.flyout-open a::before {
+            display: inline-block !important;
+        }
+
+        /* ===== MAIN ===== */
+        .main { margin-left: var(--sidebar-width); min-height: 100vh; transition: margin-left 0.3s ease; }
+
+        .topbar {
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            padding: 0 1.5rem;
+            height: 56px;
+            display: flex; align-items: center; justify-content: space-between;
+            position: sticky; top: 0; z-index: 50;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+        }
+        .topbar-left { display: flex; align-items: center; gap: 1rem; }
+        .topbar-left h1 { font-size: 1rem; font-weight: 600; color: var(--text); }
+        .topbar-empresa-badge {
+            display: inline-flex; align-items: center; gap: 0.4rem;
+            padding: 0.3rem 0.7rem; border-radius: 6px;
+            background: var(--primary-light); color: var(--primary-hover);
+            font-size: 0.78rem; font-weight: 500;
+            text-decoration: none; transition: var(--transition);
+            border: 1px solid rgba(119,140,133,0.2);
+        }
+        .topbar-empresa-badge:hover {
+            background: var(--primary); color: #fff;
+            box-shadow: var(--shadow-sm);
+        }
+        .topbar-empresa-badge:hover .topbar-empresa-change { opacity: 1; }
+        .topbar-empresa-badge svg:first-child { width: 15px; height: 15px; flex-shrink: 0; opacity: 0.7; }
+        .topbar-empresa-name { font-weight: 600; }
+        .topbar-empresa-sep { opacity: 0.4; }
+        .topbar-sucursal-name { opacity: 0.85; }
+        .topbar-empresa-change { width: 13px; height: 13px; opacity: 0.4; transition: opacity 0.2s; margin-left: 0.15rem; }
+        .topbar-right { display: flex; align-items: center; gap: 0.75rem; }
+        .topbar-user {
+            position: relative;
+        }
+        .topbar-avatar {
+            width: 36px; height: 36px; border-radius: 50%;
+            background: var(--primary); color: #fff;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 600; font-size: 0.75rem;
+            cursor: pointer; border: 2px solid transparent;
+            transition: border-color 0.2s;
+        }
+        .topbar-avatar:hover { border-color: var(--border-dark); }
+        .topbar-user.open .topbar-avatar { border-color: var(--primary); }
+        .topbar-dropdown {
+            display: none; position: absolute; top: calc(100% + 8px); right: 0;
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+            min-width: 220px; z-index: 60; overflow: hidden;
+            animation: topbarDropIn 0.2s ease;
+        }
+        .topbar-user.open .topbar-dropdown { display: block; }
+        @keyframes topbarDropIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
+        .topbar-dropdown-header {
+            display: flex; align-items: center; gap: 0.7rem;
+            padding: 0.85rem 1rem; border-bottom: 1px solid var(--border);
+        }
+        .topbar-dropdown-header .dropdown-avatar {
+            width: 40px; height: 40px; border-radius: 50%;
+            background: var(--primary); color: #fff;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 600; font-size: 0.85rem; flex-shrink: 0;
+        }
+        .topbar-dropdown-header .dropdown-info { line-height: 1.3; }
+        .topbar-dropdown-header .dropdown-info .name { font-size: 0.85rem; font-weight: 600; color: var(--text); }
+        .topbar-dropdown-header .dropdown-info .role { font-size: 0.72rem; color: var(--text-secondary); }
+        .topbar-dropdown-item {
+            display: flex; align-items: center; gap: 0.6rem;
+            padding: 0.6rem 1rem; font-size: 0.82rem; color: var(--text);
+            cursor: pointer; transition: background 0.15s; border: none;
+            background: none; width: 100%; text-align: left;
+        }
+        .topbar-dropdown-item:hover { background: var(--bg); }
+        .topbar-dropdown-item svg { width: 16px; height: 16px; color: var(--text-secondary); }
+
+        .content { padding: 1.25rem 1.5rem 2rem; }
+
+        /* ===== BREADCRUMB ===== */
+        .breadcrumb {
+            display: flex; align-items: center; gap: 0.35rem;
+            margin-bottom: 1rem; font-size: 0.78rem; color: var(--text-secondary);
+        }
+        .breadcrumb a { color: var(--text-secondary); }
+        .breadcrumb a:hover { color: var(--primary); }
+        .breadcrumb-sep { color: var(--text-light); }
+
+        /* ===== PAGE HEADER ===== */
+        .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 0.5rem; }
+        .page-header h2 { font-size: 1.25rem; font-weight: 600; color: var(--text); white-space: nowrap; }
+        .page-header-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+
+        /* ===== PANELS (SmartAdmin style) ===== */
+        .panel {
+            background: var(--surface);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-sm);
+            margin-bottom: 1.25rem;
+            border: 1px solid var(--border);
+        }
+        .panel-hdr {
+            padding: 0.85rem 1.25rem;
+            border-bottom: 1px solid var(--border);
+            display: flex; align-items: center; justify-content: space-between;
+            background: linear-gradient(to bottom, #fafafa, #f5f5f5);
+            border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+        }
+        .panel-hdr h2 { font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.02em; color: var(--text); margin: 0; }
+        .panel-hdr .panel-toolbar { display: flex; gap: 0.5rem; align-items: center; }
+        .panel-body { padding: 1.25rem; }
+        .panel-footer {
+            padding: 0.75rem 1.25rem;
+            border-top: 1px solid var(--border);
+            background: #fafafa;
+            border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+        }
+
+        /* Backwards compat with old card classes */
+        .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); margin-bottom: 1.25rem; }
+        .card-header {
+            padding: 0.85rem 1.25rem; border-bottom: 1px solid var(--border);
+            font-weight: 600; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.02em;
+            display: flex; align-items: center; justify-content: space-between;
+            background: linear-gradient(to bottom, #fafafa, #f5f5f5);
+            border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+        }
+        .card-body { padding: 1.25rem; }
+        .card-footer { padding: 0.75rem 1.25rem; border-top: 1px solid var(--border); background: #fafafa; border-radius: 0 0 var(--radius-lg) var(--radius-lg); }
+
+        /* ===== STATS ===== */
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.25rem; }
+        .stat-card {
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: var(--radius-lg); padding: 1.1rem 1.25rem;
+            box-shadow: var(--shadow-sm); display: flex; align-items: flex-start; justify-content: space-between;
+        }
+        .stat-card .stat-info {}
+        .stat-card .stat-value { font-size: 1.6rem; font-weight: 700; line-height: 1; color: var(--text); }
+        .stat-card .stat-label { color: var(--text-secondary); font-size: 0.75rem; margin-top: 0.25rem; }
+        .stat-card .stat-icon {
+            width: 42px; height: 42px; border-radius: 4px;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .stat-card .stat-icon svg { width: 20px; height: 20px; }
+        .stat-icon-blue { background: var(--info-light); color: var(--info); }
+        .stat-icon-green { background: var(--success-light); color: var(--success); }
+        .stat-icon-orange { background: var(--warning-light); color: #8a8b15; }
+        .stat-icon-red { background: var(--danger-light); color: var(--danger); }
+        .stat-icon-primary { background: var(--primary-light); color: var(--primary); }
+
+        /* ===== TABLES (striped + bordered like SmartAdmin) ===== */
+        .table-wrapper { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; }
+        thead th {
+            padding: 0.65rem 0.85rem; text-align: left;
+            font-size: 0.75rem; font-weight: 600;
+            color: var(--text); background: #f8f8f8;
+            border: 1px solid var(--border); white-space: nowrap;
+        }
+        tbody td {
+            padding: 0.55rem 0.85rem; border: 1px solid var(--border);
+            font-size: 0.82rem; vertical-align: middle;
+        }
+        tbody tr:nth-child(even) { background: #fafafa; }
+        tbody tr:hover { background: #f0f4f2; }
+        .table-empty { padding: 2.5rem; text-align: center; color: var(--text-secondary); }
+        .table-empty svg { width: 40px; height: 40px; margin-bottom: 0.75rem; opacity: 0.3; }
+
+        /* ===== BUTTONS ===== */
+        .btn {
+            display: inline-flex; align-items: center; gap: 0.4rem;
+            padding: 0.45rem 0.85rem; border: 1px solid transparent;
+            border-radius: var(--radius); font-size: 0.82rem; font-weight: 500;
+            cursor: pointer; transition: var(--transition); line-height: 1.5;
+            text-decoration: none;
+        }
+        .btn:hover { box-shadow: var(--shadow); }
+        .btn:active { transform: translateY(0); }
+        .btn svg { width: 14px; height: 14px; }
+        .btn-primary { background: var(--primary); color: #fff; box-shadow: 0 2px 6px rgba(119,140,133,0.35); }
+        .btn-primary:hover { background: var(--primary-hover); color: #fff; }
+        .btn-success { background: var(--success); color: #fff; box-shadow: 0 2px 6px rgba(43,195,129,0.35); }
+        .btn-success:hover { background: #25a96f; color: #fff; }
+        .btn-danger { background: var(--danger); color: #fff; box-shadow: 0 2px 6px rgba(175,55,255,0.35); }
+        .btn-danger:hover { background: #9a2de6; color: #fff; }
+        .btn-warning { background: var(--warning); color: #333; box-shadow: 0 2px 6px rgba(208,215,37,0.35); }
+        .btn-info { background: var(--info); color: #fff; box-shadow: 0 2px 6px rgba(55,135,255,0.35); }
+        .btn-info:hover { background: #2b75e6; color: #fff; }
+        .btn-outline { background: var(--surface); border-color: var(--border-dark); color: var(--text); }
+        .btn-outline:hover { background: var(--bg); color: var(--text); }
+        .btn-ghost { background: transparent; color: var(--text-secondary); border: none; }
+        .btn-ghost:hover { background: var(--bg); color: var(--text); box-shadow: none; }
+        .btn-sm { padding: 0.3rem 0.55rem; font-size: 0.75rem; }
+        .btn-sm svg { width: 13px; height: 13px; }
+        .btn-lg { padding: 0.6rem 1.15rem; font-size: 0.92rem; }
+        .btn-block { width: 100%; justify-content: center; }
+
+        /* ===== FORMS ===== */
+        .form-group { margin-bottom: 1.1rem; }
+        .form-label { display: block; margin-bottom: 0.35rem; font-weight: 500; font-size: 0.82rem; color: var(--text); }
+        .form-control {
+            width: 100%; padding: 0.5rem 0.75rem;
+            border: 1px solid var(--border-dark); border-radius: var(--radius);
+            font-size: 0.82rem; background: var(--surface);
+            transition: var(--transition); line-height: 1.5;
+        }
+        .form-control:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(119,140,133,0.15); }
+        .form-control::placeholder { color: var(--text-light); }
+        select.form-control { appearance: auto; }
+        textarea.form-control { resize: vertical; min-height: 80px; }
+        .form-error { color: #dc3545; font-size: 0.78rem; margin-top: 0.2rem; }
+        .form-hint { color: var(--text-secondary); font-size: 0.78rem; margin-top: 0.2rem; }
+        .form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; }
+        .form-check { display: flex; align-items: center; gap: 0.5rem; }
+        .form-check input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--primary); }
+
+        /* ===== BADGES ===== */
+        .badge {
+            display: inline-flex; align-items: center; gap: 0.2rem;
+            padding: 0.18rem 0.55rem; border-radius: 3px;
+            font-size: 0.7rem; font-weight: 600; white-space: nowrap;
+        }
+        .badge-success { background: var(--success); color: #fff; }
+        .badge-warning { background: var(--warning); color: #333; }
+        .badge-danger { background: var(--danger); color: #fff; }
+        .badge-info { background: var(--info); color: #fff; }
+        .badge-primary { background: var(--primary); color: #fff; }
+        .badge-gray { background: #e9ecef; color: var(--text-secondary); }
+
+        /* ===== ALERTS ===== */
+        .alert { padding: 0.75rem 1rem; border-radius: var(--radius); margin-bottom: 1rem; font-size: 0.82rem; display: flex; align-items: center; gap: 0.65rem; }
+        .alert-success { background: var(--success-light); color: #1a7a4f; border: 1px solid #b5e6cc; }
+        .alert-danger { background: #fce4ec; color: #b71c1c; border: 1px solid #f5c2c7; }
+        .alert-warning { background: var(--warning-light); color: #666804; border: 1px solid #e8e99c; }
+        .alert-info { background: var(--info-light); color: #1a4f9e; border: 1px solid #b6d4fe; }
+
+        /* ===== MODAL ===== */
+        .modal-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 200; align-items: center; justify-content: center; }
+        .modal-backdrop.active { display: flex; }
+        .modal { background: var(--surface); border-radius: var(--radius-lg); box-shadow: var(--shadow-lg); width: 100%; max-width: 500px; max-height: 90vh; overflow-y: auto; }
+        .modal-header { padding: 1rem 1.25rem; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+        .modal-header h3 { font-size: 1rem; font-weight: 600; }
+        .modal-body { padding: 1.25rem; }
+        .modal-footer { padding: 0.75rem 1.25rem; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 0.5rem; }
+
+        /* ===== PAGINATION ===== */
+        .pagination-wrapper { display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 1.5rem; flex-wrap: wrap; gap: 0.75rem; }
+        .pagination-info { font-size: 0.8rem; color: var(--text-secondary); }
+        .pagination { display: flex; align-items: center; justify-content: center; gap: 0.2rem; }
+        .pagination a, .pagination span {
+            padding: 0.35rem 0.65rem; border: 1px solid var(--border); border-radius: var(--radius);
+            font-size: 0.8rem; color: var(--text-secondary); transition: var(--transition); text-decoration: none;
+        }
+        .pagination a:hover { background: var(--bg); color: var(--text); }
+        .pagination .active { background: var(--primary); color: #fff; border-color: var(--primary); }
+        .pagination .disabled { opacity: 0.4; cursor: not-allowed; }
+
+        /* ===== SEARCH ===== */
+        .search-box { position: relative; }
+        .search-box input { padding-left: 2.1rem; }
+        .search-box svg { position: absolute; left: 0.65rem; top: 50%; transform: translateY(-50%); width: 15px; height: 15px; color: var(--text-light); }
+
+        /* ===== TOOLBAR ===== */
+        .toolbar { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; margin-bottom: 0.75rem; flex-wrap: wrap; }
+        .toolbar-left { display: flex; align-items: center; gap: 0.5rem; flex: 1; }
+        .toolbar-right { display: flex; align-items: center; gap: 0.5rem; }
+
+        /* ===== PROGRESS BAR ===== */
+        .progress { height: 8px; background: #e9ecef; border-radius: 4px; overflow: hidden; }
+        .progress-bar { height: 100%; border-radius: 4px; transition: width 0.3s; background: var(--primary); color: #fff; font-size: 0.68rem; font-weight: 600; display: flex; align-items: center; justify-content: center; }
+        .progress-bar-success { background: var(--success); }
+        .progress-bar-info { background: var(--info); }
+        .progress-bar-warning { background: var(--warning); }
+        .progress-bar-danger { background: var(--danger); }
+        .progress-bar-primary { background: var(--primary); }
+
+        /* ===== TABS ===== */
+        .nav-tabs { display: flex; border-bottom: 2px solid var(--border); margin-bottom: 1rem; gap: 0; }
+        .nav-tabs a {
+            padding: 0.6rem 1rem; font-size: 0.82rem; font-weight: 500;
+            color: var(--text-secondary); border-bottom: 2px solid transparent;
+            margin-bottom: -2px; transition: var(--transition);
+        }
+        .nav-tabs a:hover { color: var(--text); }
+        .nav-tabs a.active { color: var(--primary); border-bottom-color: var(--primary); }
+
+        /* ===== TOAST NOTIFICATIONS ===== */
+        .toast-container {
+            position: fixed; top: 1.25rem; right: 1.25rem; z-index: 9999;
+            display: flex; flex-direction: column; gap: 0.5rem;
+            pointer-events: none;
+        }
+        .toast {
+            display: flex; align-items: center; gap: 0.65rem;
+            padding: 0.7rem 1.15rem; border-radius: var(--radius-lg); min-width: 280px; max-width: 420px;
+            font-size: 0.84rem; font-weight: 500; pointer-events: auto;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+            animation: toastIn 0.35s ease;
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+        .toast.toast-out {
+            opacity: 0; transform: translateX(40px);
+        }
+        .toast svg { width: 18px; height: 18px; flex-shrink: 0; }
+        .toast-success { background: var(--success); color: #fff; }
+        .toast-success svg { stroke: #fff; }
+        .toast-warning { background: #f59e0b; color: #fff; }
+        .toast-warning svg { stroke: #fff; }
+        .toast-error { background: #ef4444; color: #fff; }
+        .toast-error svg { stroke: #fff; }
+        .toast-close {
+            margin-left: auto; background: none; border: none;
+            color: rgba(255,255,255,0.7); cursor: pointer; padding: 0.15rem;
+            line-height: 1; font-size: 1.1rem; transition: color 0.2s;
+        }
+        .toast-close:hover { color: #fff; }
+        @keyframes toastIn { from { opacity: 0; transform: translateX(40px); } to { opacity: 1; transform: translateX(0); } }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 768px) {
+            .sidebar { width: var(--sidebar-width) !important; transform: translateX(-100%); }
+            body.sidebar-collapsed .sidebar { transform: translateX(-100%); }
+            .main { margin-left: 0 !important; }
+            .content { padding: 1rem; }
+            .topbar { padding: 0 1rem; }
+            .form-row { grid-template-columns: 1fr; }
+            .page-header { flex-direction: column; align-items: flex-start; gap: 0.5rem; }
+            .stats-grid { grid-template-columns: 1fr 1fr; }
+        }
+    </style>
+    @stack('styles')
+</head>
+<body>
+    @auth
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-brand">
+            <img src="/img/logo-ser.png" alt="SER" style="height:40px; width:auto; object-fit:contain;">
+            <div class="sidebar-brand-text">
+                SER Inventarios
+                <small>Plataforma de Administración</small>
+            </div>
+        </div>
+
+        @php $rolSlug = Auth::user()->rol->slug; @endphp
+        <nav class="sidebar-nav">
+            {{-- Tablero (all authenticated) --}}
+            <a href="/dashboard" class="{{ request()->is('dashboard') ? 'active' : '' }}" data-tooltip="Tablero">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+                <span class="nav-label">Tablero</span>
+            </a>
+
+            @if(in_array($rolSlug, ['super_admin', 'supervisor']))
+            @if(session('has_activo_fijo') || session('has_productos_ssr'))
+            {{-- Activos --}}
+            <div class="sidebar-section">Activos</div>
+            @if(session('has_activo_fijo'))
+            <a href="/activo-fijo-productos" class="{{ request()->is('activo-fijo-productos*') ? 'active' : '' }}" data-tooltip="Catálogo de Activos">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+                <span class="nav-label">Catálogo de Activos</span>
+            </a>
+            @endif
+            @if(session('has_productos_ssr'))
+            <a href="/productos" class="{{ request()->is('productos*') ? 'active' : '' }}" data-tooltip="Productos SSR">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+                <span class="nav-label">Productos SSR</span>
+            </a>
+            @endif
+            @endif
+
+            @if(session('has_activo_fijo'))
+            {{-- Reportes --}}
+            <div class="sidebar-section">Reportes</div>
+            <div class="sidebar-menu-group">
+                <button class="sidebar-toggle-btn {{ request()->is('reportes*') ? 'open' : '' }}" onclick="toggleSubmenu(this)" data-tooltip="Reportes">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                    <span class="nav-label">Reportes</span>
+                    <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+                </button>
+                <div class="sidebar-collapsible sidebar-sub {{ request()->is('reportes*') ? 'open' : '' }}" data-title="Reportes">
+                    <a href="/reportes/conteo" class="{{ request()->is('reportes/conteo') ? 'active' : '' }}">Activos Encontrados</a>
+                    <a href="/reportes/no-encontrados" class="{{ request()->is('reportes/no-encontrados') ? 'active' : '' }}">Activos No Encontrados</a>
+                    <a href="/reportes/global" class="{{ request()->is('reportes/global') ? 'active' : '' }}">Reporte Global</a>
+                    <a href="/reportes/acumulado" class="{{ request()->is('reportes/acumulado') ? 'active' : '' }}">Reporte Acumulado</a>
+                    <a href="/reportes/sesiones-movil" class="{{ request()->is('reportes/sesiones-movil') ? 'active' : '' }}">Sesiones Móvil</a>
+                </div>
+            </div>
+            @endif
+            @endif
+
+            @if(session('has_transferencias'))
+            {{-- Transferencias --}}
+            <div class="sidebar-section">Transferencias</div>
+            <div class="sidebar-menu-group">
+                <button class="sidebar-toggle-btn {{ request()->is('transferencias*') || request()->is('traspasos*') || request()->is('ordenes-entrada*') ? 'open' : '' }}" onclick="toggleSubmenu(this)" data-tooltip="Transferencias">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+                    <span class="nav-label">Transferencias</span>
+                    <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+                </button>
+                <div class="sidebar-collapsible sidebar-sub {{ request()->is('transferencias*') || request()->is('traspasos*') || request()->is('ordenes-entrada*') ? 'open' : '' }}" data-title="Transferencias">
+                    <a href="/ordenes-entrada" class="{{ request()->is('ordenes-entrada*') ? 'active' : '' }}">Órdenes de Entrada</a>
+                    <a href="/transferencias/nueva" class="{{ request()->is('transferencias/nueva') ? 'active' : '' }}">Nueva Solicitud</a>
+                    <a href="/transferencias/solicitadas" class="{{ request()->is('transferencias/solicitadas') ? 'active' : '' }}">Órdenes Solicitadas</a>
+                    <a href="/transferencias/recibidas" class="{{ request()->is('transferencias/recibidas') ? 'active' : '' }}">Órdenes Recibidas</a>
+                    @if(in_array($rolSlug, ['super_admin', 'supervisor']))
+                    <a href="/traspasos" class="{{ request()->is('traspasos*') ? 'active' : '' }}">Historial de Traspasos</a>
+                    @endif
+                </div>
+            </div>
+            @endif
+
+            @if(in_array($rolSlug, ['super_admin', 'supervisor']))
+            @if(session('has_inventarios_ssr'))
+            {{-- Inventario de Productos --}}
+            <div class="sidebar-section">Inventario de Productos</div>
+            <a href="/inventarios" class="{{ request()->is('inventarios') || request()->is('inventarios/*') ? 'active' : '' }}" data-tooltip="Sesiones de Inventario">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg>
+                <span class="nav-label">Sesiones de Inventario</span>
+            </a>
+            <div class="sidebar-menu-group">
+                <button class="sidebar-toggle-btn {{ request()->is('inventario-reportes*') ? 'open' : '' }}" onclick="toggleSubmenu(this)" data-tooltip="Reportes Inventario">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                    <span class="nav-label">Reportes Inventario</span>
+                    <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+                </button>
+                <div class="sidebar-collapsible sidebar-sub {{ request()->is('inventario-reportes*') ? 'open' : '' }}" data-title="Reportes Inventario">
+                    <a href="/inventario-reportes/agrupado-producto" class="{{ request()->is('inventario-reportes/agrupado-producto') ? 'active' : '' }}">Agrupado por Producto</a>
+                    <a href="/inventario-reportes/agrupado-producto-ubicacion" class="{{ request()->is('inventario-reportes/agrupado-producto-ubicacion') ? 'active' : '' }}">Por Producto y Ubicacion</a>
+                    <a href="/inventario-reportes/detalle" class="{{ request()->is('inventario-reportes/detalle') ? 'active' : '' }}">Detalle de Conteo</a>
+                    <a href="/inventario-reportes/diferencias" class="{{ request()->is('inventario-reportes/diferencias') ? 'active' : '' }}">Diferencias</a>
+                    <a href="/inventario-reportes/gnc" class="{{ request()->is('inventario-reportes/gnc') ? 'active' : '' }}">Reporte GNC</a>
+                </div>
+            </div>
+            @endif
+
+            @if(session('has_activo_fijo'))
+            {{-- Activo Fijo --}}
+            <div class="sidebar-section">Activo Fijo</div>
+            <a href="/activo-fijo" class="{{ request()->is('activo-fijo*') ? 'active' : '' }}" data-tooltip="Sesiones de Activo Fijo">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><line x1="12" y1="12" x2="12" y2="12.01"/></svg>
+                <span class="nav-label">Sesiones de Activo Fijo</span>
+            </a>
+            @endif
+
+            {{-- Administración --}}
+            <div class="sidebar-section">Administración</div>
+            <div class="sidebar-menu-group">
+                <button class="sidebar-toggle-btn {{ request()->is('empresas*') || request()->is('sucursales*') ? 'open' : '' }}" onclick="toggleSubmenu(this)" data-tooltip="Empresas">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18M3 7v14m6-14v14m6-14v14m6-14v14M6 3h12l3 4H3l3-4z"/></svg>
+                    <span class="nav-label">Empresas</span>
+                    <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+                </button>
+                <div class="sidebar-collapsible sidebar-sub {{ request()->is('empresas*') || request()->is('sucursales*') ? 'open' : '' }}" data-title="Empresas">
+                    <a href="/empresas" class="{{ request()->is('empresas*') ? 'active' : '' }}">Catálogo de Empresas</a>
+                    <a href="/sucursales" class="{{ request()->is('sucursales*') ? 'active' : '' }}">Catálogo de Sucursales</a>
+                </div>
+            </div>
+            @endif
+
+            @if($rolSlug === 'super_admin')
+            <a href="/usuarios" class="{{ request()->is('usuarios*') ? 'active' : '' }}" data-tooltip="Usuarios">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                <span class="nav-label">Usuarios</span>
+            </a>
+            @endif
+        </nav>
+
+        <div class="sidebar-footer">
+            SER Inventarios v1.0.0
+        </div>
+    </aside>
+
+    <div class="main">
+        <div class="topbar">
+            <div class="topbar-left">
+                <button class="btn btn-ghost sidebar-toggle" id="sidebarToggle" onclick="toggleSidebar()" title="Menú">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="16" y2="12"/><line x1="4" y1="18" x2="12" y2="18"/></svg>
+                </button>
+                @if(session('selected_empresa_nombre'))
+                <a href="{{ route('cambiar-empresa') }}" class="topbar-empresa-badge" title="Cambiar empresa / sucursal">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18M3 7v14m6-14v14m6-14v14m6-14v14M6 3h12l3 4H3l3-4z"/></svg>
+                    <span class="topbar-empresa-name">{{ session('selected_empresa_nombre') }}</span>
+                    @if(session('selected_sucursal_nombre'))
+                        <span class="topbar-empresa-sep">/</span>
+                        <span class="topbar-sucursal-name">{{ session('selected_sucursal_nombre') }}</span>
+                    @endif
+                    <svg class="topbar-empresa-change" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+                </a>
+                @endif
+            </div>
+            <div class="topbar-right">
+                <button class="btn btn-ghost" id="fullscreenBtn" onclick="toggleFullscreen()" title="Pantalla completa">
+                    <svg id="fsExpand" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><polyline points="21 15 21 21 15 21"/><polyline points="3 9 3 3 9 3"/></svg>
+                    <svg id="fsCompress" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:none;"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><polyline points="14 20 14 14 20 14"/><polyline points="10 4 10 10 4 10"/></svg>
+                </button>
+                <div class="topbar-user" id="topbarUser">
+                    <div class="topbar-avatar" onclick="document.getElementById('topbarUser').classList.toggle('open')">
+                        {{ strtoupper(substr(Auth::user()->nombres, 0, 2)) }}
+                    </div>
+                    <div class="topbar-dropdown">
+                        <div class="topbar-dropdown-header">
+                            <div class="dropdown-avatar">{{ strtoupper(substr(Auth::user()->nombres, 0, 2)) }}</div>
+                            <div class="dropdown-info">
+                                <div class="name">{{ Auth::user()->nombres }}</div>
+                                <div class="role">{{ Auth::user()->rol->nombre }}</div>
+                            </div>
+                        </div>
+                        <form method="POST" action="{{ route('logout') }}">
+                            @csrf
+                            <button type="submit" class="topbar-dropdown-item">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                                Cerrar sesión
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="content">
+            @yield('content')
+        </div>
+    </div>
+    @else
+        @yield('content')
+    @endauth
+
+    <div class="toast-container" id="toastContainer"></div>
+
+    @stack('scripts')
+    <script>
+        function toggleSidebar() {
+            document.body.classList.toggle('sidebar-collapsed');
+            localStorage.setItem('sidebarCollapsed', document.body.classList.contains('sidebar-collapsed') ? '1' : '');
+        }
+        // Restore sidebar state from localStorage
+        if (localStorage.getItem('sidebarCollapsed') === '1') {
+            document.body.classList.add('sidebar-collapsed');
+        }
+
+        function closeAllFlyouts() {
+            document.querySelectorAll('.sidebar-collapsible.flyout-open').forEach(function(f) {
+                f.classList.remove('flyout-open');
+                f.style.left = '';
+                f.style.top = '';
+            });
+        }
+
+        function toggleSubmenu(btn) {
+            var sub = btn.nextElementSibling;
+            if (!sub) return;
+
+            // Collapsed mode: open as fixed flyout
+            if (document.body.classList.contains('sidebar-collapsed')) {
+                var wasOpen = sub.classList.contains('flyout-open');
+                closeAllFlyouts();
+                if (!wasOpen) {
+                    var rect = btn.getBoundingClientRect();
+                    sub.style.left = rect.right + 'px';
+                    sub.style.top = rect.top + 'px';
+                    sub.classList.add('flyout-open');
+                }
+                return;
+            }
+
+            // Expanded mode: normal toggle
+            btn.classList.toggle('open');
+            sub.classList.toggle('open');
+        }
+
+        // Close flyout on outside click
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.sidebar-menu-group')) {
+                closeAllFlyouts();
+            }
+        });
+
+        // Fullscreen toggle
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen();
+            } else {
+                document.exitFullscreen();
+            }
+        }
+        document.addEventListener('fullscreenchange', function() {
+            var isFs = !!document.fullscreenElement;
+            document.getElementById('fsExpand').style.display = isFs ? 'none' : '';
+            document.getElementById('fsCompress').style.display = isFs ? '' : 'none';
+        });
+
+        // Close user dropdown on outside click
+        document.addEventListener('click', function(e) {
+            var u = document.getElementById('topbarUser');
+            if (u && !u.contains(e.target)) u.classList.remove('open');
+        });
+
+        /* === Toast Notification System === */
+        var _toastIcons = {
+            success: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>',
+            warning: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
+            error: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>'
+        };
+
+        function showToast(message, type) {
+            type = type || 'success';
+            var container = document.getElementById('toastContainer');
+            var toast = document.createElement('div');
+            toast.className = 'toast toast-' + type;
+            toast.innerHTML = (_toastIcons[type] || '') +
+                '<span>' + message + '</span>' +
+                '<button class="toast-close" onclick="dismissToast(this.parentElement)">&times;</button>';
+            container.appendChild(toast);
+            setTimeout(function() { dismissToast(toast); }, 4500);
+        }
+
+        function dismissToast(toast) {
+            if (!toast || toast.classList.contains('toast-out')) return;
+            toast.classList.add('toast-out');
+            setTimeout(function() { toast.remove(); }, 300);
+        }
+
+        @if(session('success'))
+            showToast(@json(session('success')), 'success');
+        @endif
+        @if(session('error'))
+            showToast(@json(session('error')), 'error');
+        @endif
+        @if(session('warning'))
+            showToast(@json(session('warning')), 'warning');
+        @endif
+    </script>
+</body>
+</html>

@@ -76,19 +76,28 @@ class SyncController extends Controller
         $user = $request->user();
         $empresaIds = $user->empresas->pluck('id');
 
+        // If specific empresa/sucursal selected, narrow the scope
+        if ($request->has('empresa_id')) {
+            $empresaIds = $empresaIds->intersect([$request->empresa_id]);
+        }
+        $sucursalId = $request->get('sucursal_id');
+
         // Session counts
-        $inventarioCount = Inventario::where('eliminado', false)
-            ->whereIn('empresa_id', $empresaIds)
-            ->count();
+        $invQuery = Inventario::where('eliminado', false)
+            ->whereIn('empresa_id', $empresaIds);
+        if ($sucursalId) $invQuery->where('sucursal_id', $sucursalId);
+        $inventarioCount = $invQuery->count();
 
-        $activoFijoCount = ActivoFijoInventario::where('eliminado', false)
-            ->whereIn('empresa_id', $empresaIds)
-            ->count();
+        $afQuery = ActivoFijoInventario::where('eliminado', false)
+            ->whereIn('empresa_id', $empresaIds);
+        if ($sucursalId) $afQuery->where('sucursal_id', $sucursalId);
+        $activoFijoCount = $afQuery->count();
 
-        // AF session IDs for this user's empresas
-        $afSessionIds = ActivoFijoInventario::where('eliminado', false)
-            ->whereIn('empresa_id', $empresaIds)
-            ->pluck('id');
+        // AF session IDs for filtered scope
+        $afIdQuery = ActivoFijoInventario::where('eliminado', false)
+            ->whereIn('empresa_id', $empresaIds);
+        if ($sucursalId) $afIdQuery->where('sucursal_id', $sucursalId);
+        $afSessionIds = $afIdQuery->pluck('id');
 
         // Registros = found/scanned assets
         $foundCount = ActivoFijoRegistro::whereIn('inventario_id', $afSessionIds)

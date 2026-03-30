@@ -32,6 +32,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/activo-fijo', [ActivoFijoApiController::class, 'index']);
     Route::post('/activo-fijo/create', [ActivoFijoApiController::class, 'create']);
     Route::get('/activo-fijo-productos', [ActivoFijoApiController::class, 'productos']);
+    Route::get('/activo-fijo/registros', [ActivoFijoApiController::class, 'registros']);
     Route::post('/activo-fijo/upload', [ActivoFijoApiController::class, 'upload']);
     Route::post('/activo-fijo/upload-imagen', [ActivoFijoApiController::class, 'uploadImagen']);
     Route::post('/activo-fijo/no-encontrados', [ActivoFijoApiController::class, 'uploadNoEncontrados']);

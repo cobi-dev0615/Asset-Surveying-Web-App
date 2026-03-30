@@ -48,6 +48,26 @@ class ActivoFijoApiController extends Controller
         return response()->json($inventario, 201);
     }
 
+    public function registros(Request $request)
+    {
+        $request->validate([
+            'inventario_id' => 'required|integer|exists:activo_fijo_inventarios,id',
+        ]);
+
+        $registros = ActivoFijoRegistro::where('inventario_id', $request->inventario_id)
+            ->select([
+                'id', 'inventario_id', 'id_producto', 'codigo_1', 'codigo_2', 'codigo_3',
+                'tag_rfid', 'n_serie', 'descripcion', 'categoria', 'nombre_almacen',
+                'ubicacion_1', 'observaciones', 'imagen1', 'imagen2', 'imagen3',
+                'traspasado', 'forzado', 'latitud', 'longitud',
+                'created_at', 'usuario_id',
+            ])
+            ->orderBy('id')
+            ->get();
+
+        return response()->json($registros);
+    }
+
     public function productos(Request $request)
     {
         $empresaIds = $request->user()->empresas->pluck('id');
